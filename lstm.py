@@ -51,8 +51,9 @@ vocab_size = len(dictionary)
 # Parameters
 learning_rate = 0.0001
 training_iters = 50000
-display_step = 1000
-n_input = 3
+display_step =1000
+n_input = 4
+n_predictions = 32
 
 # number of units in RNN cell
 n_hidden = 512
@@ -153,7 +154,7 @@ with tf.Session() as session:
             continue
         try:
             symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
-            for i in range(32):
+            for i in range(n_predictions):
                 keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
                 onehot_pred = session.run(pred, feed_dict={x: keys})
                 onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())

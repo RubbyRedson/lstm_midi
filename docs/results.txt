@@ -1,0 +1,8 @@
+n_input     iterations      n_hidden        avg loss        avg accuracy
+3           10000           512
+4           10000           512             1.851430        36.3%
+
+
+n=3 Iter= 10000, Average Loss= 1.871085, Average Accuracy= 45.50%
+n=4 Iter= 10000, Average Loss= 1.867106, Average Accuracy= 36.70%
+n=4 Iter= 50000, Average Loss= 0.705408, Average Accuracy= 74.10%

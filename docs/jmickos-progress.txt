@@ -1,0 +1,18 @@
+JOHAN MICKOS
+
+DEC17 08:00 UTC-5
+    Done
+    * Set up Nik's repo locally, ensured smooth operation
+    * Read through sample code & accompanying blog bost
+    * Wrote document w/ considerations and implications w.r.t. our project
+    * Began investigating TensorFlowOnSpark (TFOS) requirements to get our LSTM up and running
+
+    TODOs
+    * Check shared project on Hops
+        * Cannot run simple TF job using Hops' TFLauncher
+            * Most likely a Python2.7 vs Python3 issue, need to verify what we have installed
+    * Document and standardize output format(s) from MIDI parser/transformer
+    * Write decoder for output from LSTM back into basic MIDI
+        ex:
+            C 7 7 7 7 ; ; ; ; A A A A 9 9 9 9 < < < < @ @ @ @ 7 7 7 7 ; ; ; ; A A A
+            @ @ 7 C 7 C 7 H H H 9 ; ; ; B B B B E J J J < < < < @ @ @ @ 7 7 7 7 ; ;
