@@ -1,5 +1,24 @@
 JOHAN MICKOS
 
+DEC18 09:48 UTC-5
+   Done
+   * Read documentation and examples on TFOS, distributed TF, and related concepts
+   * Began migration of lstm.py into TFOS-compatible version. Skeleton is in place, but lacking data ingestion
+   * Wrote up documentation on learned concepts, gotchas
+   * Documented useful resources for further work
+
+   Notes
+   Message to Nikita:
+    "So far I've made some headway re: conversion to TFOS, but the most critical outstanding part is now ingesting data into the program and converting it as the local impl. does. Included in this is looking into how information and jobs are distributed in both sycnh and asynch training on TFOS, as well as figuring out how it combines weights across machines in both cases"
+
+   TODOS
+   Below are taken from tfos.md:
+   * Ingest data and populate related structures (dict, reverse_dict, training_data, ...) correctly
+   * Look into asynch. vs synch. training for distributed TF and which case is applicable for us. [This](https://stackoverflow.com/questions/41293576/distributed-tensorflow-good-example-for-synchronous-training-on-cpus) may be a good resource.
+   * Determine HDFS locations of textual MIDI data (may need to upload to Hops first)
+   * Store trained model(s) so that we can then run prediction scripts against them to generate "music"
+
+
 DEC17 08:00 UTC-5
     Done
     * Set up Nik's repo locally, ensured smooth operation
