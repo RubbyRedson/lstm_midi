@@ -10,7 +10,12 @@ Here's a list of resources I've found useful for getting things up-and-running c
 * [Conversion Guide](https://github.com/yahoo/TensorFlowOnSpark/wiki/Conversion-Guide)
 * [TFOS Overview](http://yahoohadoop.tumblr.com/post/157196317141/open-sourcing-tensorflowonspark-distributed-deep)
 * [TFOS Documentation](https://yahoo.github.io/TensorFlowOnSpark/)
-*
+
+## TODOs
+* Ingest data and populate related structures (dict, reverse_dict, training_data, ...) correctly
+* Look into asynch. vs synch. training for distributed TF and which case is applicable for us. [This](https://stackoverflow.com/questions/41293576/distributed-tensorflow-good-example-for-synchronous-training-on-cpus) may be a good resource.
+* Determine HDFS locations of textual MIDI data (may need to upload to Hops first)
+* Store trained model(s) so that we can then run prediction scripts against them to generate "music"
 
 ## Conversion
 See the [Conversion Guide](https://github.com/yahoo/TensorFlowOnSpark/wiki/Conversion-Guide) for information on how to translate an existing TF program into a TFOS program.
