@@ -2,7 +2,12 @@
 The way the dictionary is created is to take the integer value from the `Note Value` field of the note on event and cast it to a [ASCII char](http://www.asciitable.com/) 
 with the `char(val)` python function. 
 
-It should be noted that the first 33 chars are pretty dodgy and should probably be removed to the `Extended ASCII Codes` instead. 
+It should be noted that **the first 33 chars are pretty dodgy** and should probably be removed to the `Extended ASCII Codes` instead. 
+
+# Note on/off 
+This screenshot is taken from [this github](https://github.com/colxi/midi-parser-js/wiki/MIDI-File-Format-Specifications).
+
+<img width="653" alt="skarmavbild 2017-12-19 kl 23 12 40" src="https://user-images.githubusercontent.com/5947764/34181677-730f6f36-e513-11e7-9acd-7c7b56e0fc40.png">
 
 # Example
 When you do this you get the following dictionary.
