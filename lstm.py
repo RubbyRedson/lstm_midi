@@ -20,10 +20,10 @@ def elapsed(sec):
 # Target log path
 logs_path = '/tmp/tensorflow/rnn_words'
 writer = tf.summary.FileWriter(logs_path)
-
 # Text file containing words for training
 #training_file = 'belling_the_cat.txt'
 training_file = './midi_text/midi_text/bach/bach_846_track[1].txt'
+# training_file = './midi_text/midi_text/bach/bach_846_track_all.txt'
 
 def read_data(fname):
     with open(fname) as f:
@@ -32,6 +32,7 @@ def read_data(fname):
     content = [content[i].split() for i in range(len(content))]
     content = np.array(content)
     content = np.reshape(content, [-1, ])
+    content = [''.join(sorted(it)) for it in content]
     return content
 
 training_data = read_data(training_file)
@@ -52,8 +53,8 @@ vocab_size = len(dictionary)
 learning_rate = 0.0001
 training_iters = 50000
 display_step =1000
-n_input = 4
-n_predictions = 32
+n_input = 3
+n_predictions = 128
 
 # number of units in RNN cell
 n_hidden = 512
