@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 
 # Constants
-DEFAULT_DATA_PATH = './midi_text/midi_text/bach/pop.txt'
+DEFAULT_DATA_PATH = './midi_text_newdict/midi_text_newdict/beethoven/beethoven_hammerklavier_1_format0_track[0].txt'
 DEFAULT_LOGDIR = '/tmp/tensorflow/rnn_chopin'
 DEFAULT_SAVE_LOC = '/tmp/model.ckpt'
 
@@ -56,7 +56,7 @@ def read_data(data_path):
     :return: list of numpy arrays of words
     """
     if os.path.isfile(data_path):
-        return read_file(data_path)
+        return [read_file(data_path)]
     elif os.path.isdir(data_path):
         return read_dir(data_path)
 
@@ -73,7 +73,7 @@ def build_dataset(words):
 
 
 def get_lstm_cell(num_hidden):
-    return rnn.BasicLSTMCell(num_hidden, forget_bias=0.0, state_is_tuple=True)
+    return rnn.BasicLSTMCell(num_hidden)
 
 
 def create_rnn(x, weights, biases, num_inputs, num_hidden):
@@ -90,7 +90,7 @@ def create_rnn(x, weights, biases, num_inputs, num_hidden):
 
     num_layers = 2
 
-    rnn_cell = rnn.MultiRNNCell([make_cell() for _ in range(num_layers)], state_is_tuple=True)
+    rnn_cell = rnn.MultiRNNCell([make_cell() for _ in range(num_layers)])
 
     # Generate prediction
     outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
@@ -105,14 +105,15 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
     # Parameters
     learning_rate = 0.0001
-    training_iters = 50000
+    training_iters = 10000
     display_step = 1000
-    n_input = 3
+    n_input = 5
     n_predictions = 32
     n_hidden = 512
 
     # Consume data files and build representation
     training_data = read_data(data_path)
+    print("training data: {}".format(training_data))
     # Flatten into single array
     training_data = np.concatenate(training_data).ravel()
     dictionary, reverse_dictionary = build_dataset(training_data)
@@ -124,10 +125,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     y = tf.placeholder("float", [None, vocab_size])
 
     weights = {
-        'out': tf.Variable(tf.random_normal([n_hidden, vocab_size]))
+        'out': tf.Variable(tf.random_normal([n_hidden, vocab_size], mean=0.0, stddev=0.08))
     }
+    # TODO Initialize LSTM forget gates with higher biases to encourage remembering in beginning
     biases = {
-        'out': tf.Variable(tf.random_normal([vocab_size]))
+        'out': tf.Variable(tf.random_normal([vocab_size], mean=0.0, stddev=0.8))
     }
 
     pred = create_rnn(x, weights, biases, n_input, n_hidden)

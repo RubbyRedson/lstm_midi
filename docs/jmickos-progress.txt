@@ -1,4 +1,13 @@
 JOHAN MICKOS
+
+DEC28
+    Done
+    * Debugged use of global variable before use when running TFoS.
+        Cause:  incorrect Python version when installing Conda (need 3.6, 2.7 was used)
+        Fix:    create a new project on Hops, as that's currently the only way to change Python versions
+        Note:   Hops cluster seems fully utilized and unable to allocated PySpark resources to run mini script.
+
+
 DEC19 07:49 UTC-5
     Notes
     * There is a bug in how the LSTM code 'parses' the input and how the input is actually structured. Presently, the actual input is a series of space-separated notes/chords, implying that three non-separated notes (chord) will be treated as a 'word' by the network. We actually want the network to recognize _each_ of these notes indiviually as well, but somehow capture the fact that they occur at the same time.
