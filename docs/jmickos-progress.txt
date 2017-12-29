@@ -3,9 +3,19 @@ JOHAN MICKOS
 DEC28
     Done
     * Debugged use of global variable before use when running TFoS.
-        Cause:  incorrect Python version when installing Conda (need 3.6, 2.7 was used)
+        Cause:  incorrect Python version when installing Conda (need 2.7, 3.6 was used)
         Fix:    create a new project on Hops, as that's currently the only way to change Python versions
         Note:   Hops cluster seems fully utilized and unable to allocated PySpark resources to run mini script.
+                Had to wait to test change
+    * Migrated chopin.py to Hops-friendly version, with basic tensorboard tracking of cost and accuracy.
+      Source code has been included under the hops_notebooks directory, and can also be found on hops under the most recent
+      project named "lstm_music_generator."
+        Notes:  - Accuracy drops to 0 for certain iterations, we should look into why this is
+                - Right now it ingests a single file under the ParsedMIDI/Sample resource directory on hops. We need to
+                  add support for parsing through multiple files in a folder and concatenating their data,
+                  OR modify it to assign one file per "worker" in the directory. More investigation needed here
+                - It takes a long time compared to localhost when running on a single node with 1GB RAM. We need to
+                  experiment with more RAM and figure out how to parallelize larger workloads.
 
 
 DEC19 07:49 UTC-5
