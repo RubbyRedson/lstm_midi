@@ -4,7 +4,7 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-#from dictionary import getDictSwapped
+from dictionary import getDictSwapped
 from tensorflow.contrib import rnn
 
 # Constants
@@ -30,19 +30,30 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
-    if "track_all.txt" in file_path:
+    if "track_all.txt" not in file_path:
         return np.array([])
 
     print("Parsing {}".format(file_path))
 
     with open(file_path) as f:
         lines = f.readlines()
+   
     content = [line.strip() for line in lines]
+
+    tmp = []
+    for row in content:
+        tmp += list(row)
+    
+    content = np.array(tmp)
+    content = np.reshape(content, [-1, ])
+
+    '''
     content = [content[i].split() for i in range(len(content))]
     content = np.array(content)
     content = np.reshape(content, [-1, ])
     content = [''.join(sorted(it)) for it in content]
-    
+    '''
+
     return content
 
 
@@ -69,16 +80,7 @@ def read_data(data_path):
 
 # TODO I don't think we need this, as our dictionary is finite and known ahead of time
 def build_dataset(words):
-
-    
-    import collections
-    counts = collections.Counter(words).most_common()
-    
-    dictionary = dict()
-    for word, _count in counts:
-        dictionary[word] = len(dictionary)
-
-    #dictionary = getDictSwapped()
+    dictionary = getDictSwapped()
     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 
     return dictionary, reverse_dictionary
@@ -116,12 +118,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     start_time = time.time()
 
     # Parameters
-    learning_rate = 0.001
-    training_iters = 1000
+    learning_rate = 0.0001
+    training_iters = 15800
     display_step = 100
-    n_input = 16
+    n_input = 50
     n_predictions = 256
-    resolution = 16
     n_hidden = 512
     _pkeep = 0.7
 
@@ -223,33 +224,30 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
         while True:
             prompt = "%s words: " % n_input
             sentence = input(prompt)
-            sentence = sentence.strip()
-            words = sentence.split(' ')
+
+            words = [c for c in sentence]
+            print(words)
+            #sentence = sentence.strip()
+            #words = sentence.split(' ')
             if len(words) != n_input:
                 continue
             try:
                 symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
-
-                '''
-                tmp = []
-                for i in range(0, len(symbols_in_keys)):
-                    for j in range(0, int(resolution / 4)):
-                        tmp.append(symbols_in_keys[i])
-
                 print(symbols_in_keys)
-                print(tmp)
 
-                symbols_in_keys = tmp
-                '''
-
-                for i in range(len(symbols_in_keys)):
+                predictionOutput = ""
+                for i in range(n_predictions):
                     keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
                     onehot_pred = session.run(pred, feed_dict={x: keys, pkeep: 1})
                     onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
                     sentence = "%s %s" % (sentence, reverse_dictionary[onehot_pred_index])
+                    print("Prediction" + reverse_dictionary[onehot_pred_index] + "INDEX:" + str(onehot_pred_index))
                     symbols_in_keys = symbols_in_keys[1:]
+                    predictionOutput += reverse_dictionary[onehot_pred_index]
                     symbols_in_keys.append(onehot_pred_index)
+
                 print(sentence)
+                print(predictionOutput)
             except:
                 print("Word not in dictionary")
 

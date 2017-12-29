@@ -1,0 +1,9 @@
+Victor Axelsson
+
+29 dec
+	- Added dropout. 
+	- Added static dictionary
+	- Changed so that notes aren't build up by chords but instead are individual chars. 
+	- Implemented reading from folder recursively. 
+	- Set so that you can easily change so that you don't read in both the _all and each track (you onl want one of them since they are composed of eachother)
+	- Fiddled around with parameter so see if you can get around the fact that it seems to converge.
