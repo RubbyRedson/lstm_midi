@@ -42,7 +42,7 @@ def read_file(file_path):
 
     tmp = []
     for row in content:
-        tmp += list(row)
+        tmp += list("%r" % str(row))
     
     content = np.array(tmp)
     content = np.reshape(content, [-1, ])
@@ -119,7 +119,7 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
     # Parameters
     learning_rate = 0.0001
-    training_iters = 15800
+    training_iters = 30000
     display_step = 100
     n_input = 50
     n_predictions = 256
