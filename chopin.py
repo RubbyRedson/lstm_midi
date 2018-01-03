@@ -28,11 +28,20 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
+    '''
+    if "track_all.txt" not in data_path:
+        content = np.array([])
+        content = np.reshape(content, [-1, ])
+        return [content]
+    '''
     print("Parsing {}".format(file_path))
     with open(file_path) as f:
         lines = f.readlines()
     content = [line.strip() for line in lines]
     content = [content[i].split() for i in range(len(content))]
+
+    print(file_path)
+    #print(content)
     content = np.array(content)
     content = np.reshape(content, [-1, ])
     # content = [''.join(sorted(it)) for it in content]
@@ -220,5 +229,5 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
 
 if __name__ == '__main__':
-    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 1 else sys.argv[0]
+    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 2 else sys.argv[1]
     run(data_path)
