@@ -106,16 +106,18 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     # Parameters
     learning_rate = 0.0001
     training_iters = 50000
-    display_step = 1000
+    display_step = 10
     n_input = 32
     n_predictions = 128
     n_hidden = 512
 
     # Consume data files and build representation
     training_data = read_data(data_path)
-    print("training data: {}".format(training_data))
+    #print("training data: {}".format(training_data))
     # Flatten into single array
     training_data = np.concatenate(training_data).ravel()
+    training_data = [element for tupl in training_data for element in tupl]
+
     dictionary, reverse_dictionary = build_dataset(training_data)
     vocab_size = len(dictionary)
 
