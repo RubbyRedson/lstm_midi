@@ -45,7 +45,7 @@ def read_dir(dir_path):
     :param dir_path: location of directory to read
     :return: list of numpy arrays of files' words
     """
-    contents = [read_file(os.path.join(dir_path, f)) for f in os.listdir(dir_path)]
+    contents = [read_data(os.path.join(dir_path, f)) for f in os.listdir(dir_path)]
     return contents
 
 
@@ -105,10 +105,10 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
     # Parameters
     learning_rate = 0.0001
-    training_iters = 10000
+    training_iters = 50000
     display_step = 1000
-    n_input = 5
-    n_predictions = 32
+    n_input = 32
+    n_predictions = 128
     n_hidden = 512
 
     # Consume data files and build representation
@@ -125,11 +125,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     y = tf.placeholder("float", [None, vocab_size])
 
     weights = {
-        'out': tf.Variable(tf.random_normal([n_hidden, vocab_size], mean=0.0, stddev=0.08))
+        'out': tf.Variable(tf.random_normal([n_hidden, vocab_size]))
     }
     # TODO Initialize LSTM forget gates with higher biases to encourage remembering in beginning
     biases = {
-        'out': tf.Variable(tf.random_normal([vocab_size], mean=0.0, stddev=0.8))
+        'out': tf.Variable(tf.random_normal([vocab_size]))
     }
 
     pred = create_rnn(x, weights, biases, n_input, n_hidden)
