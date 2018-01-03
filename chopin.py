@@ -28,23 +28,23 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
-    '''
-    if "track_all.txt" not in data_path:
+    
+    if "track_all.txt" not in file_path:
         content = np.array([])
-        content = np.reshape(content, [-1, ])
-        return [content]
-    '''
+        return content
+
+
     print("Parsing {}".format(file_path))
     with open(file_path) as f:
         lines = f.readlines()
     content = [line.strip() for line in lines]
     content = [content[i].split() for i in range(len(content))]
 
-    print(file_path)
-    #print(content)
+
     content = np.array(content)
     content = np.reshape(content, [-1, ])
     # content = [''.join(sorted(it)) for it in content]
+
     return content
 
 
@@ -124,8 +124,9 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     training_data = read_data(data_path)
     #print("training data: {}".format(training_data))
     # Flatten into single array
-    training_data = np.concatenate(training_data).ravel()
-    training_data = [element for tupl in training_data for element in tupl]
+
+    training_data = np.concatenate(training_data, axis=1).ravel()
+    training_data = [element for tupl in training_data for element in tupl]    
 
     dictionary, reverse_dictionary = build_dataset(training_data)
     vocab_size = len(dictionary)
@@ -229,5 +230,5 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
 
 if __name__ == '__main__':
-    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 2 else sys.argv[1]
+    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 1 else sys.argv[1]
     run(data_path)
