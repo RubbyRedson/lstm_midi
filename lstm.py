@@ -22,8 +22,9 @@ logs_path = '/tmp/tensorflow/rnn_words'
 writer = tf.summary.FileWriter(logs_path)
 # Text file containing words for training
 #training_file = 'belling_the_cat.txt'
-training_file = './midi_text/midi_text/bach/bach_846_track[1].txt'
-# training_file = './midi_text/midi_text/bach/bach_846_track_all.txt'
+#training_file = './midi_text/midi_text/bach/bach_846_track[1].txt'
+#training_file = './Bach_Cantate_BWV198_TrauerOde_track[2].txt'
+training_file = './bach_846_format0_track_all.txt'
 
 def read_data(fname):
     with open(fname) as f:
@@ -47,17 +48,18 @@ def build_dataset(words):
     return dictionary, reverse_dictionary
 
 dictionary, reverse_dictionary = build_dataset(training_data)
+print(dictionary)
 vocab_size = len(dictionary)
 
 # Parameters
 learning_rate = 0.0001
 training_iters = 50000
-display_step =1000
-n_input = 3
+display_step = 1000
+n_input = 4
 n_predictions = 128
 
 # number of units in RNN cell
-n_hidden = 512
+n_hidden = 256
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_input, 1])
@@ -80,7 +82,7 @@ def RNN(x, weights, biases):
     # (eg. [had] [a] [general] -> [20] [6] [33])
     x = tf.split(x,n_input,1)
 
-    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
+    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden, forget_bias=1.0),rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)])
 
     # generate prediction
     outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
@@ -146,6 +148,7 @@ with tf.Session() as session:
     print("Run on command line.")
     print("\ttensorboard --logdir=%s" % (logs_path))
     print("Point your web browser to: http://localhost:6006/")
+    randomFeed = 4
     while True:
         prompt = "%s words: " % n_input
         sentence = input(prompt)
@@ -153,15 +156,25 @@ with tf.Session() as session:
         words = sentence.split(' ')
         if len(words) != n_input:
             continue
-        try:
-            symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
-            for i in range(n_predictions):
-                keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
-                onehot_pred = session.run(pred, feed_dict={x: keys})
-                onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
-                sentence = "%s %s" % (sentence,reverse_dictionary[onehot_pred_index])
+        #try:
+        symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
+        for i in range(n_predictions):
+            keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
+            onehot_pred = session.run(pred, feed_dict={x: keys})
+            onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
+            sentence = "%s %s" % (sentence,reverse_dictionary[onehot_pred_index])
+
+            symbols_in_keys = symbols_in_keys[1:]
+            symbols_in_keys.append(onehot_pred_index)
+
+            #On in every bar, feed in a random key
+            
+            #if i % 4 == 0:
+            for _ in range(0, randomFeed):
                 symbols_in_keys = symbols_in_keys[1:]
-                symbols_in_keys.append(onehot_pred_index)
-            print(sentence)
-        except:
-            print("Word not in dictionary")
+                symbols_in_keys.append(random.randint(0, len(dictionary)))
+            
+
+        print(sentence)
+        #except:
+            #print("Word not in dictionary")
