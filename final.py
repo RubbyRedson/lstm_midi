@@ -8,19 +8,20 @@ VERBOSE = True
 class Config(object):
     data_path = '/tmp/chopin/data'
     save_dir = '/tmp/chopin/save'
+    seed_str = ' 58%,1 58%,1 58%,1'
     num_epochs = 100
-    num_units = 512
+    num_units = 128
     batch_size = 16
     seq_len = 128
-    num_layers = 2
-    dropout = 0.8
+    num_layers = 3
+    dropout = 1.0
     learning_rate = 1e-3
     save_epochs = 5
 
     @property
     def save_path(self):
         import os
-        filename = "{}units_{}epochs_{}batchsize_{}seqlen_{}layers_{}dropout_{}lr".format(
+        filename = "xmas-{}units_{}epochs_{}batchsize_{}seqlen_{}layers_{}dropout_{}lr".format(
             self.num_units, self.num_epochs, self.batch_size, self.seq_len, self.num_layers, self.dropout,
             self.learning_rate
         )
@@ -180,9 +181,14 @@ class Model(object):
             self.logits = tf.matmul(rnn_outputs, W) + b
             self.predictions = tf.nn.softmax(self.logits)
 
+            correct_pred = tf.equal(tf.argmax(self.predictions[-1], 0), tf.argmax(self.labels[-1], 0))
+            self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+
+
             self.loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=labels_out))
             self.train_op = tf.train.AdamOptimizer(config.learning_rate).minimize(self.loss)
+
 
             self.init_op = tf.global_variables_initializer()
             # TODO Make sample() function for evaluating prediction against actual
@@ -215,12 +221,16 @@ class Model(object):
 
         ret = seed
         char = seed[-1]
-        for n in range(num):
+        n = 0
+        num_spaces = 0
+
+        while (n < num * 2) and (num_spaces < num):
+            n += 1
             cur = char_to_idx[char]
 
             feed = {self.inputs: [[cur]], self.init_state: state}
             [probs, state] = sess.run([self.predictions, self.final_state], feed)
-            p = probs[-1]
+            p = probs[0]
 
             if sampling_type == "argmax":
                 sample = np.argmax(p)
@@ -233,6 +243,8 @@ class Model(object):
                 sample = weighted_pick(p)
 
             pred = idx_to_char[sample]
+            if pred == ' ':
+                num_spaces += 1
             ret += pred
             char = pred
         return ret
@@ -250,10 +262,12 @@ def train(config, loader):
         sess.run(model.init_op)
         sess.run(predict_model.init_op)
         saver = tf.train.Saver()
+        counter = 0
 
         for idx, epoch in enumerate(loader.gen_epochs(config.num_epochs)):
             # Reset memory
             loss = 0
+            acc = 0
             steps = 0
             state = sess.run(model.init_state)
             start = time.time()
@@ -267,27 +281,38 @@ def train(config, loader):
                 if state is not None:
                     feed[model.init_state] = state
 
-                l, state, _ = sess.run([
+                l, a, state, _ = sess.run([
                     model.loss,
+                    model.accuracy,
                     model.final_state,
                     model.train_op
                 ], feed_dict=feed)
 
+
                 loss += l
+                acc += a
+                counter += 1
+
+                if counter % 1000 == 0:
+                    l, p = sess.run([model.logits, model.predictions], feed)
+                    print(p[0])
+                    print(X[0])
+                    print(Y[0])
 
             end = time.time()
 
-            print("({}s) Epoch {}/{}: avg. loss={}".format(end - start, idx, config.num_epochs, loss / steps))
+            print("({}s) Epoch {}/{}: avg. loss={}, avg. acc={}".format(end - start, idx, config.num_epochs, loss / steps, acc / steps))
             losses.append(loss / steps)
 
-            sentence = predict_model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted", seed='QEB')
+            sentence = predict_model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted", seed=config.seed_str)
             print(sentence)
 
+
             if config.save_condition(epoch=idx):
-                print("Saving to {}".format(config.save_path))
-                saver.save(sess, config.save_path)
-        print("[DONE] Saving to {}".format(config.save_path))
-        saver.save(sess, config.save_path)
+                print("Saving to {}".format(config.save_path + '-' + str(idx)))
+                saver.save(sess, config.save_path + '-' + str(idx))
+        print("[DONE] Saving to {}".format(config.save_path + '-final'))
+        saver.save(sess, config.save_path + '-final')
     return losses
 
 
