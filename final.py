@@ -8,27 +8,41 @@ VERBOSE = True
 class Config(object):
     data_path = '/tmp/chopin/data'
     save_dir = '/tmp/chopin/save'
-    num_epochs = 30
-    num_units = 128
+    num_epochs = 100
+    num_units = 512
     batch_size = 16
-    seq_len = 25
-    num_layers = 3
-    dropout = 0.7
+    seq_len = 128
+    num_layers = 2
+    dropout = 0.8
     learning_rate = 1e-3
+    save_epochs = 5
 
     @property
     def save_path(self):
         import os
         filename = "{}units_{}epochs_{}batchsize_{}seqlen_{}layers_{}dropout_{}lr".format(
-            self.num_units, self.num_epochs, self.batch_size, self.seq_len, self.num_layers, self.dropout, self.learning_rate
+            self.num_units, self.num_epochs, self.batch_size, self.seq_len, self.num_layers, self.dropout,
+            self.learning_rate
         )
         return os.path.join(self.save_dir, filename)
 
+    def save_condition(self, *args):
+        return False
+
 
 class DefaultConfig(Config):
-    data_path = './charbased/example/input.txt'
+    data_path = './midi_text/bach/pop.txt'
     save_dir = './charbased/saves/'
 
+    def save_condition(self, **kwargs):
+        if 'epoch' in kwargs.keys():
+            epoch = kwargs['epoch']
+            return epoch == 1  or epoch % 5 == 0
+
+class PredictConfig(Config):
+    batch_size = 1
+    seq_len = 1
+    
 
 class Parser(object):
     def parse(self, data_path):
@@ -59,16 +73,22 @@ class DataLoader(object):
 
         raw_data = parser.parse(data_path)
 
-        self.vocab = set(raw_data)
+        # self.vocab = set(raw_data)
+        # self.vocab_size = len(self.vocab)
+        # self.idx_to_char = dic = dict(enumerate(self.vocab))
+        import dictionary
+        self.idx_to_char = dic = dictionary.getDict()
+        self.char_to_idx = rev = dict(zip(dic.values(), dic.keys()))
+
+        self.vocab = set(self.char_to_idx.keys())
         self.vocab_size = len(self.vocab)
-        self.dic = dic = dict(enumerate(self.vocab))
-        self.rev = rev = dict(zip(dic.values(), dic.keys()))
 
         data = [rev[c] for c in raw_data]
         self.data = np.array(data, dtype=np.int32)
         del raw_data
 
     def batch_iter(self):
+        # TODO Dig into how this works
         assert self.data is not None
 
         data_len = len(self.data)
@@ -116,6 +136,7 @@ class Model(object):
         if VERBOSE:
             print("Generating graph")
 
+        # Reuse variables to allow multiple concurrent models (for training and sampling, for ex.)
         with tf.variable_scope("model", reuse=tf.AUTO_REUSE) as scope:
             if self.interactive:
                 scope.reuse_variables()
@@ -128,6 +149,7 @@ class Model(object):
 
             dropout = tf.constant(config.dropout, name="dropout")
 
+            # TODO Swap out embeddings for manual OHE
             embeddings = tf.get_variable('embeddings', [config.vocab_size, config.num_units])
             rnn_inputs = tf.nn.embedding_lookup(embeddings, self.inputs)
 
@@ -140,17 +162,17 @@ class Model(object):
             if use_dropout:
                 cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=dropout)
 
+            # Unroll LSTM cells
             self.init_state = init_state = cell.zero_state(config.batch_size, tf.float32)
             rnn_outputs, last_state = tf.nn.dynamic_rnn(cell, rnn_inputs, initial_state=init_state)
             self.final_state = last_state
 
-            initializer = tf.constant_initializer(0.0)
-            # initializer = tf.random_normal_initializer(mean=0.0, stddev=0.8)
-            with tf.variable_scope('rnnlm'):
-                W = tf.get_variable('W', [config.num_units, config.vocab_size])
-                b = tf.get_variable('b', [config.vocab_size], initializer=initializer)
+            w_initializer = tf.constant_initializer(0.0)
+            b_initializer = tf.random_normal_initializer(mean=0.0, stddev=0.8)
+            W = tf.get_variable('W', [config.num_units, config.vocab_size], initializer=w_initializer)
+            b = tf.get_variable('b', [config.vocab_size], initializer=b_initializer)
 
-            # Reshape outputs (we only really care about the last unit's predictions for the last char)
+            # Flatten outputs
             rnn_outputs = tf.reshape(rnn_outputs, [-1, config.num_units])
             labels_out = tf.reshape(labels, [-1])
 
@@ -162,18 +184,27 @@ class Model(object):
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=labels_out))
             self.train_op = tf.train.AdamOptimizer(config.learning_rate).minimize(self.loss)
 
-            self.init_op = tf.global_variables_initializer() if not self.interactive else None
+            self.init_op = tf.global_variables_initializer()
             # TODO Make sample() function for evaluating prediction against actual
 
-    def sample(self, sess, rev, dic, num=200, seed='The ', sampling_type="weighted"):
+    def sample(self, sess, idx_to_char, char_to_idx, num=256, seed='The ', sampling_type="weighted"):
         def weighted_pick(p):
             idx = np.random.choice(range(loader.vocab_size), p=p.ravel())
             return idx
 
+        # Verify seed
+        for c in seed:
+            if c not in char_to_idx:
+                import random
+                seed_ = ''.join([random.choice(list(char_to_idx.keys())) for _ in range(len(seed))])
+                print("WARN: Seed is not compatible with dictionary. Using random seed '{}'".format(seed_))
+                seed = seed_
+                break
+
         # Warm up LSTM units
         state = sess.run(self.init_state)
         for char in seed[:-1]:
-            cur = rev[char]
+            cur = char_to_idx[char]
             feed = {
                 self.inputs: [[cur]],
             }
@@ -185,11 +216,11 @@ class Model(object):
         ret = seed
         char = seed[-1]
         for n in range(num):
-            cur = rev[char]
+            cur = char_to_idx[char]
 
             feed = {self.inputs: [[cur]], self.init_state: state}
             [probs, state] = sess.run([self.predictions, self.final_state], feed)
-            p = probs[0]
+            p = probs[-1]
 
             if sampling_type == "argmax":
                 sample = np.argmax(p)
@@ -201,7 +232,7 @@ class Model(object):
             else:
                 sample = weighted_pick(p)
 
-            pred = dic[sample]
+            pred = idx_to_char[sample]
             ret += pred
             char = pred
         return ret
@@ -209,11 +240,15 @@ class Model(object):
 
 def train(config, loader):
     model = Model(config, training=True)
-    predict_model = Model(config, training=False, interactive=True)
+    predict_conf = PredictConfig()
+    predict_conf.vocab_size = config.vocab_size
+
+    predict_model = Model(predict_conf, training=False, interactive=True)
     losses = []
 
     with tf.Session() as sess:
         sess.run(model.init_op)
+        sess.run(predict_model.init_op)
         saver = tf.train.Saver()
 
         for idx, epoch in enumerate(loader.gen_epochs(config.num_epochs)):
@@ -240,26 +275,29 @@ def train(config, loader):
 
                 loss += l
 
-                if steps % 1000 == 0:
-                    sentence = predict_model.sample(sess, loader.rev, loader.dic, sampling_type="weighted")
-                    print(sentence)
-
             end = time.time()
 
             print("({}s) Epoch {}/{}: avg. loss={}".format(end - start, idx, config.num_epochs, loss / steps))
             losses.append(loss / steps)
 
-        print("Saving to {}".format(config.save_dir))
-        saver.save(sess, config.save_dir)
+            sentence = predict_model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted", seed='QEB')
+            print(sentence)
+
+            if config.save_condition(epoch=idx):
+                print("Saving to {}".format(config.save_path))
+                saver.save(sess, config.save_path)
+        print("[DONE] Saving to {}".format(config.save_path))
+        saver.save(sess, config.save_path)
     return losses
 
 
-def predict(config, loader):
+def predict(config, loader, save_path=None):
+    if save_path is None:
+        save_path = config.save_path
     model = Model(config, training=False)
     with tf.Session() as sess:
-        tf.train.Saver().restore(sess, config.save_dir)
-        sess.run(model.init_op)
-        sentence = model.sample(sess, loader.rev, loader.dic, sampling_type="weighted")
+        tf.train.Saver().restore(sess, save_path)
+        sentence = model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted")
         print(sentence)
 
 
@@ -268,11 +306,7 @@ if __name__ == '__main__':
     loader = DataLoader(config)
     config.vocab_size = loader.vocab_size
 
-    import pprint
-
-    pprint.pprint(config)
-
     train(config, loader)
     # TODO By training, it seems more believable. by reading savepoint, it's garbled and doesn't seem to have learned
     # TODO Pickle data in loader (like vocab_size and dic, rev)
-    predict(config, loader)
+    # predict(config, loader, save_path='charbased/saves/128units_50epochs_16batchsize_25seqlen_2layers_0.7dropout_0.001lr')
