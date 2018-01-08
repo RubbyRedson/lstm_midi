@@ -79,17 +79,26 @@ class DataLoader(object):
         # self.idx_to_char = dic = dict(enumerate(self.vocab))
         import dictionary
         self.idx_to_char = dic = dictionary.getDict()
-        self.char_to_idx = rev = dict(zip(dic.values(), dic.keys()))
+        self.char_to_idx = rev = dictionary.getDictSwapped()
 
         self.vocab = set(self.char_to_idx.keys())
         self.vocab_size = len(self.vocab)
 
-        data = [rev[c] for c in raw_data]
+        # data = [rev[c] for c in raw_data]
+        data = []
+        blacklist = set()
+        blacklisted = 0
+        for c in raw_data:
+            if c in rev:
+                data.append(rev[c])
+            else:
+                blacklist.add(c)
+                blacklisted += 1
+        print("INFO: Blacklisted {} ({} total) characters from input data.".format(len(blacklist), blacklisted))
         self.data = np.array(data, dtype=np.int32)
         del raw_data
 
     def batch_iter(self):
-        # TODO Dig into how this works
         assert self.data is not None
 
         data_len = len(self.data)
@@ -181,14 +190,14 @@ class Model(object):
             self.logits = tf.matmul(rnn_outputs, W) + b
             self.predictions = tf.nn.softmax(self.logits)
 
-            correct_pred = tf.equal(tf.argmax(self.predictions[-1], 0), tf.argmax(self.labels[-1], 0))
-            self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-
+            pred_indices = tf.argmax(self.predictions, 1)
+            correct = tf.equal(pred_indices, tf.cast(labels_out, pred_indices.dtype))
+            self.accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
 
             self.loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=labels_out))
             self.train_op = tf.train.AdamOptimizer(config.learning_rate).minimize(self.loss)
-
+            # TODO Gradient clipping?
 
             self.init_op = tf.global_variables_initializer()
             # TODO Make sample() function for evaluating prediction against actual
@@ -268,7 +277,7 @@ def train(config, loader):
             # Reset memory
             loss = 0
             acc = 0
-            steps = 0
+            steps = 1
             state = sess.run(model.init_state)
             start = time.time()
 
@@ -294,10 +303,7 @@ def train(config, loader):
                 counter += 1
 
                 if counter % 1000 == 0:
-                    l, p = sess.run([model.logits, model.predictions], feed)
-                    print(p[0])
-                    print(X[0])
-                    print(Y[0])
+                    print("Total counter currently at {}".format(counter))
 
             end = time.time()
 
@@ -306,7 +312,6 @@ def train(config, loader):
 
             sentence = predict_model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted", seed=config.seed_str)
             print(sentence)
-
 
             if config.save_condition(epoch=idx):
                 print("Saving to {}".format(config.save_path + '-' + str(idx)))
