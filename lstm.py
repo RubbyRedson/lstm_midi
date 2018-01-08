@@ -52,8 +52,8 @@ vocab_size = len(dictionary)
 # Parameters
 learning_rate = 0.0001
 training_iters = 50000
-display_step =1000
-n_input = 3
+display_step = 1000
+n_input = 16
 n_predictions = 128
 
 # number of units in RNN cell

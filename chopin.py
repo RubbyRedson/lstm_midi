@@ -4,14 +4,16 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-
+from dictionary import getDictSwapped
 from tensorflow.contrib import rnn
 
 # Constants
-DEFAULT_DATA_PATH = './midi_text_newdict/midi_text_newdict/beethoven/beethoven_hammerklavier_1_format0_track[0].txt'
-DEFAULT_LOGDIR = '/tmp/tensorflow/rnn_chopin'
-DEFAULT_SAVE_LOC = '/tmp/model.ckpt'
-
+#DEFAULT_DATA_PATH = './midi_text_newdict/midi_text_newdict/beethoven/beethoven_hammerklavier_1_format0_track[0].txt'
+#DEFAULT_LOGDIR = '/tmp/tensorflow/rnn_chopin'
+#DEFAULT_SAVE_LOC = '/tmp/model.ckpt'
+DEFAULT_DATA_PATH = './midi_text/midi_text/bach/bach_846_format0_track_all.txt' 
+DEFAULT_LOGDIR = './resources'
+DEFAULT_SAVE_LOC = './resources/model.ckpt'
 
 def elapsed(sec):
     if sec < 60:
@@ -28,14 +30,30 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
+    if "track_all.txt" not in file_path:
+        return np.array([])
+
     print("Parsing {}".format(file_path))
+
     with open(file_path) as f:
         lines = f.readlines()
+   
     content = [line.strip() for line in lines]
+
+    tmp = []
+    for row in content:
+        tmp += list("%r" % str(row))
+    
+    content = np.array(tmp)
+    content = np.reshape(content, [-1, ])
+
+    '''
     content = [content[i].split() for i in range(len(content))]
     content = np.array(content)
     content = np.reshape(content, [-1, ])
-    # content = [''.join(sorted(it)) for it in content]
+    content = [''.join(sorted(it)) for it in content]
+    '''
+
     return content
 
 
@@ -45,9 +63,8 @@ def read_dir(dir_path):
     :param dir_path: location of directory to read
     :return: list of numpy arrays of files' words
     """
-    contents = [read_file(os.path.join(dir_path, f)) for f in os.listdir(dir_path)]
+    contents = [read_data(os.path.join(dir_path, f)) for f in os.listdir(dir_path)]
     return contents
-
 
 def read_data(data_path):
     """
@@ -63,12 +80,9 @@ def read_data(data_path):
 
 # TODO I don't think we need this, as our dictionary is finite and known ahead of time
 def build_dataset(words):
-    import collections
-    counts = collections.Counter(words).most_common()
-    dictionary = dict()
-    for word, _count in counts:
-        dictionary[word] = len(dictionary)
+    dictionary = getDictSwapped()
     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+
     return dictionary, reverse_dictionary
 
 
@@ -76,11 +90,11 @@ def get_lstm_cell(num_hidden):
     return rnn.BasicLSTMCell(num_hidden)
 
 
-def create_rnn(x, weights, biases, num_inputs, num_hidden):
+def create_rnn(x, weights, biases, num_inputs, num_hidden, pkeep):
     def make_cell():
         cell = get_lstm_cell(num_hidden)
-        # TODO if is_training and keep_prob < 1:
-        #    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=config.keep_prob)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=pkeep)
+
         return cell
 
     x = tf.reshape(x, [-1, num_inputs])
@@ -105,24 +119,30 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
     # Parameters
     learning_rate = 0.0001
-    training_iters = 10000
-    display_step = 1000
-    n_input = 5
-    n_predictions = 32
+    training_iters = 30000
+    display_step = 100
+    n_input = 50
+    n_predictions = 256
     n_hidden = 512
+    _pkeep = 0.7
+
 
     # Consume data files and build representation
     training_data = read_data(data_path)
-    print("training data: {}".format(training_data))
+    #print("training data: {}".format(training_data))
     # Flatten into single array
     training_data = np.concatenate(training_data).ravel()
+    training_data = [element for tupl in training_data for element in tupl]
+
     dictionary, reverse_dictionary = build_dataset(training_data)
     vocab_size = len(dictionary)
+    print(dictionary)
 
     writer = tf.summary.FileWriter(logdir=logdir)
 
     x = tf.placeholder("float", [None, n_input, 1])
     y = tf.placeholder("float", [None, vocab_size])
+    pkeep = tf.placeholder(tf.float32)
 
     weights = {
         'out': tf.Variable(tf.random_normal([n_hidden, vocab_size], mean=0.0, stddev=0.08))
@@ -132,7 +152,7 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
         'out': tf.Variable(tf.random_normal([vocab_size], mean=0.0, stddev=0.8))
     }
 
-    pred = create_rnn(x, weights, biases, n_input, n_hidden)
+    pred = create_rnn(x, weights, biases, n_input, n_hidden, pkeep)
 
     # Loss and optimizer
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
@@ -163,6 +183,7 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
                 # If we've stepped past our input data, restart at random offset
                 offset = random.randint(0, n_input + 1)
 
+
             symbols_in_keys = [[dictionary[str(training_data[i])]] for i in range(offset, offset + n_input)]
             symbols_in_keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
 
@@ -172,7 +193,9 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
             _, acc, loss, onehot_pred = session.run(
                 [train_op, accuracy, cost, pred],
-                feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+                feed_dict={x: symbols_in_keys, y: symbols_out_onehot, pkeep: _pkeep})
+
+
             loss_total += loss
             acc_total += acc
             if (step + 1) % display_step == 0:
@@ -187,6 +210,8 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
                 print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
             step += 1
             offset += (n_input + 1)
+
+
         print("Optimization Finished!")
         print("Elapsed time: ", elapsed(time.time() - start_time))
         save_path = saver.save(session, save_loc)
@@ -199,24 +224,34 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
         while True:
             prompt = "%s words: " % n_input
             sentence = input(prompt)
-            sentence = sentence.strip()
-            words = sentence.split(' ')
+
+            words = [c for c in sentence]
+            print(words)
+            #sentence = sentence.strip()
+            #words = sentence.split(' ')
             if len(words) != n_input:
                 continue
             try:
                 symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
+                print(symbols_in_keys)
+
+                predictionOutput = ""
                 for i in range(n_predictions):
                     keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
-                    onehot_pred = session.run(pred, feed_dict={x: keys})
+                    onehot_pred = session.run(pred, feed_dict={x: keys, pkeep: 1})
                     onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
                     sentence = "%s %s" % (sentence, reverse_dictionary[onehot_pred_index])
+                    print("Prediction" + reverse_dictionary[onehot_pred_index] + "INDEX:" + str(onehot_pred_index))
                     symbols_in_keys = symbols_in_keys[1:]
+                    predictionOutput += reverse_dictionary[onehot_pred_index]
                     symbols_in_keys.append(onehot_pred_index)
+
                 print(sentence)
+                print(predictionOutput)
             except:
                 print("Word not in dictionary")
 
 
 if __name__ == '__main__':
-    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 1 else sys.argv[0]
+    data_path = DEFAULT_DATA_PATH if len(sys.argv) is 1 else sys.argv[1]
     run(data_path)
