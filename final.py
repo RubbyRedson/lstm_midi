@@ -334,11 +334,22 @@ def predict(config, loader, save_path=None, num_samples=10):
 
 
 if __name__ == '__main__':
+    param_num_units = [128, 512]
+    param_num_layers = [1, 3]
+    param_learning_rates = [0.001, 0.001]
+    param_dropouts = [1.0, 0.6]
+
     config = DefaultConfig()
     loader = DataLoader(config)
     config.vocab_size = loader.vocab_size
 
-    train(config, loader)
-    # TODO By training, it seems more believable. by reading savepoint, it's garbled and doesn't seem to have learned
+    # train(config, loader)
     # TODO Pickle data in loader (like vocab_size and dic, rev)
-    # predict(config, loader, save_path='charbased/saves/128units_50epochs_16batchsize_25seqlen_2layers_0.7dropout_0.001lr')
+    from itertools import product
+    for num_units, num_layers, lr, dropout in product(param_num_units, param_num_layers, param_learning_rates, param_dropouts):
+        config.num_units = num_units
+        config.num_layers = num_layers
+        config.learning_rate = lr
+        config.dropout = dropout
+        train(config, loader)
+        predict(config, loader, save_path=config.save_path)
