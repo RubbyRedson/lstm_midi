@@ -321,14 +321,16 @@ def train(config, loader):
     return losses
 
 
-def predict(config, loader, save_path=None):
+def predict(config, loader, save_path=None, num_samples=10):
     if save_path is None:
         save_path = config.save_path
     model = Model(config, training=False)
     with tf.Session() as sess:
         tf.train.Saver().restore(sess, save_path)
-        sentence = model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted")
-        print(sentence)
+        for _ in range(num_samples):
+            sentence = model.sample(sess, loader.idx_to_char, loader.char_to_idx, sampling_type="weighted", seed=config.seed_str)
+            print(sentence)
+            print('         OCH<DK       ')
 
 
 if __name__ == '__main__':
