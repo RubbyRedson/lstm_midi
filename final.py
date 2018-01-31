@@ -8,14 +8,15 @@ VERBOSE = True
 class Config(object):
     data_path = '/tmp/chopin/data'
     save_dir = '/tmp/chopin/save'
-    seed_str = ' 58%,1 58%,1 58%,1'
+    seed_str = 'EJB-&2 EJB-&2 ' # Good for mozart, powerful chord
+    # seed_str = '$0 $0 $0 $0 '
     num_epochs = 100
     num_units = 128
-    batch_size = 16
+    batch_size = 4
     seq_len = 128
-    num_layers = 3
-    dropout = 1.0
-    learning_rate = 1e-3
+    num_layers = 2
+    dropout = 0.6
+    learning_rate = 1e-4
     save_epochs = 5
 
     @property
@@ -32,7 +33,8 @@ class Config(object):
 
 
 class DefaultConfig(Config):
-    data_path = './midi_text/bach/pop.txt'
+    # data_path = './midi_text/mozart/collected.txt'
+    data_path = './midi_text/xmas/bk_xmas1_track_all.txt'
     save_dir = './charbased/saves/'
 
     def save_condition(self, **kwargs):
@@ -345,11 +347,19 @@ if __name__ == '__main__':
 
     # train(config, loader)
     # TODO Pickle data in loader (like vocab_size and dic, rev)
-    from itertools import product
-    for num_units, num_layers, lr, dropout in product(param_num_units, param_num_layers, param_learning_rates, param_dropouts):
-        config.num_units = num_units
-        config.num_layers = num_layers
-        config.learning_rate = lr
-        config.dropout = dropout
-        train(config, loader)
-        predict(config, loader, save_path=config.save_path)
+    # from itertools import product
+    # for num_units, num_layers, lr, dropout in product(param_num_units, param_num_layers, param_learning_rates, param_dropouts):
+    #     config.num_units = num_units
+    #     config.num_layers = num_layers
+    #     config.learning_rate = lr
+    #     config.dropout = dropout
+    #     train(config, loader)
+    #     predict(config, loader, save_path=config.save_path)
+    #
+
+    config.num_units = 512
+    config.num_layers = 2
+    config.dropout = 1
+    config.seed_str = ' CF\'3 CF\'3 CF\'3 CF\'3 '
+    predict(config, loader, save_path='./charbased/saves/chopin-512units_150epochs_32batchsize_128seqlen_2layers_0.6dropout_0.0001lr-100')
+    # predict(config, loader, save_path='./charbased/saves/chopin-128units_100epochs_64batchsize_128seqlen_2layers_1.0dropout_0.001lr-final')

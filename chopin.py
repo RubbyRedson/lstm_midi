@@ -6,12 +6,12 @@ import numpy as np
 import tensorflow as tf
 from dictionary import getDictSwapped
 from tensorflow.contrib import rnn
+import collections
+
 
 # Constants
-#DEFAULT_DATA_PATH = './midi_text_newdict/midi_text_newdict/beethoven/beethoven_hammerklavier_1_format0_track[0].txt'
-#DEFAULT_LOGDIR = '/tmp/tensorflow/rnn_chopin'
-#DEFAULT_SAVE_LOC = '/tmp/model.ckpt'
-DEFAULT_DATA_PATH = './midi_text/midi_text/bach/bach_846_format0_track_all.txt' 
+# DEFAULT_DATA_PATH = './midi_text/midi_text/bach/bach_846_format0_track_all.txt'
+DEFAULT_DATA_PATH = './charbased/example/input.txt'
 DEFAULT_LOGDIR = './resources'
 DEFAULT_SAVE_LOC = './resources/model.ckpt'
 
@@ -30,31 +30,17 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
-    if "track_all.txt" not in file_path:
-        return np.array([])
+    # if "track_all.txt" not in file_path:
+    #     return np.array([])
+
 
     print("Parsing {}".format(file_path))
 
     with open(file_path) as f:
-        lines = f.readlines()
-   
-    content = [line.strip() for line in lines]
+        # lines = f.readlines()
+        data = f.read()
+        return data
 
-    tmp = []
-    for row in content:
-        tmp += list("%r" % str(row))
-    
-    content = np.array(tmp)
-    content = np.reshape(content, [-1, ])
-
-    '''
-    content = [content[i].split() for i in range(len(content))]
-    content = np.array(content)
-    content = np.reshape(content, [-1, ])
-    content = [''.join(sorted(it)) for it in content]
-    '''
-
-    return content
 
 
 def read_dir(dir_path):
@@ -80,10 +66,18 @@ def read_data(data_path):
 
 # TODO I don't think we need this, as our dictionary is finite and known ahead of time
 def build_dataset(words):
-    dictionary = getDictSwapped()
+    count = collections.Counter(words).most_common()
+    dictionary = dict()
+    for word, _ in count:
+        dictionary[word] = len(dictionary)
     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-
     return dictionary, reverse_dictionary
+    #
+    #
+    # dictionary = getDictSwapped()
+    # reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    #
+    # return dictionary, reverse_dictionary
 
 
 def get_lstm_cell(num_hidden):
@@ -119,22 +113,23 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
 
     # Parameters
     learning_rate = 0.0001
-    training_iters = 30000
+    training_iters = 2000
     display_step = 100
-    n_input = 50
-    n_predictions = 256
+    n_input = 100
+    n_predictions = 200
     n_hidden = 512
     _pkeep = 0.7
 
 
     # Consume data files and build representation
-    training_data = read_data(data_path)
+    training_data = read_file(data_path)
     #print("training data: {}".format(training_data))
     # Flatten into single array
-    training_data = np.concatenate(training_data).ravel()
-    training_data = [element for tupl in training_data for element in tupl]
+    # training_data = np.concatenate(training_data).ravel()
+    # training_data = [element for tupl in training_data for element in tupl]
 
     dictionary, reverse_dictionary = build_dataset(training_data)
+
     vocab_size = len(dictionary)
     print(dictionary)
 
@@ -152,10 +147,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
         'out': tf.Variable(tf.random_normal([vocab_size], mean=0.0, stddev=0.8))
     }
 
-    pred = create_rnn(x, weights, biases, n_input, n_hidden, pkeep)
+    logits = create_rnn(x, weights, biases, n_input, n_hidden, pkeep)
+    pred = prediction = tf.nn.softmax(logits)
 
     # Loss and optimizer
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     train_op = optimizer.minimize(cost, global_step=tf.train.get_or_create_global_step())
 
@@ -208,6 +204,20 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
                 symbols_out = training_data[offset + n_input]
                 symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
                 print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
+            if (step + 1) % 10000 == 0:
+                save_path = saver.save(session, save_loc)
+                print("Model saved in file: %s" % save_path)
+
+                coll = ""
+                prime = [[dictionary[str(training_data[i])]] for i in range(offset, offset + n_input)]
+                for j in range(100):
+                    xin =  np.reshape(np.array(prime), [-1, n_input, 1])
+                    p = session.run(pred, {x: xin})
+                    idx = np.argmax(np.random.multinomial(1, pvals=p))
+                    char = dictionary[idx]
+                    coll += char
+                print(coll)
+
             step += 1
             offset += (n_input + 1)
 
@@ -239,8 +249,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
                 for i in range(n_predictions):
                     keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
                     onehot_pred = session.run(pred, feed_dict={x: keys, pkeep: 1})
-                    onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
-                    sentence = "%s %s" % (sentence, reverse_dictionary[onehot_pred_index])
+
+
+                    # onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
+                    onehot_pred_index = int(np.searchsorted(np.cumsum(onehot_pred), np.random.rand(1)))
+                    sentence = "%s%s" % (sentence, reverse_dictionary[onehot_pred_index])
                     print("Prediction" + reverse_dictionary[onehot_pred_index] + "INDEX:" + str(onehot_pred_index))
                     symbols_in_keys = symbols_in_keys[1:]
                     predictionOutput += reverse_dictionary[onehot_pred_index]

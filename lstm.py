@@ -22,18 +22,21 @@ logs_path = '/tmp/tensorflow/rnn_words'
 writer = tf.summary.FileWriter(logs_path)
 # Text file containing words for training
 #training_file = 'belling_the_cat.txt'
-training_file = './midi_text/midi_text/bach/bach_846_track[1].txt'
+# training_file = './midi_text/midi_text/bach/bach_846_track[1].txt'
+training_file = './charbased/example/input.txt'
 # training_file = './midi_text/midi_text/bach/bach_846_track_all.txt'
 
 def read_data(fname):
-    with open(fname) as f:
-        content = f.readlines()
-    content = [x.strip() for x in content]
-    content = [content[i].split() for i in range(len(content))]
-    content = np.array(content)
-    content = np.reshape(content, [-1, ])
-    content = [''.join(sorted(it)) for it in content]
-    return content
+    return open(fname, 'r').read()
+# def read_data(fname):
+#     with open(fname) as f:
+#         content = f.readlines()
+#     content = [x.strip() for x in content]
+#     content = [content[i].split() for i in range(len(content))]
+#     content = np.array(content)
+#     content = np.reshape(content, [-1, ])
+#     content = [''.join(sorted(it)) for it in content]
+#     return content
 
 training_data = read_data(training_file)
 print("Loaded training data...")
@@ -53,7 +56,7 @@ vocab_size = len(dictionary)
 learning_rate = 0.0001
 training_iters = 50000
 display_step = 1000
-n_input = 16
+n_input = 3
 n_predictions = 128
 
 # number of units in RNN cell
@@ -90,6 +93,7 @@ def RNN(x, weights, biases):
     return tf.matmul(outputs[-1], weights['out']) + biases['out']
 
 pred = RNN(x, weights, biases)
+prob = tf.nn.softmax(pred)
 
 # Loss and optimizer
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
@@ -139,6 +143,17 @@ with tf.Session() as session:
             symbols_out = training_data[offset + n_input]
             symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
             print("%s - [%s] vs [%s]" % (symbols_in,symbols_out,symbols_out_pred))
+
+            coll = ""
+            prime = [[dictionary[str(training_data[i])]] for i in range(offset, offset + n_input)]
+            for j in range(100):
+                xin = np.reshape(np.array(prime), [-1, n_input, 1])
+                p = session.run(prob, {x: xin})
+                idx = np.argmax(np.random.multinomial(1, pvals=p[0]))
+                char = reverse_dictionary[idx]
+                coll += char
+            print(coll)
+
         step += 1
         offset += (n_input+1)
     print("Optimization Finished!")
@@ -158,7 +173,10 @@ with tf.Session() as session:
             for i in range(n_predictions):
                 keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
                 onehot_pred = session.run(pred, feed_dict={x: keys})
-                onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
+
+                onehot_pred_index = np.random.choice(range(vocab_size), p=onehot_pred.ravel())
+
+                # onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
                 sentence = "%s %s" % (sentence,reverse_dictionary[onehot_pred_index])
                 symbols_in_keys = symbols_in_keys[1:]
                 symbols_in_keys.append(onehot_pred_index)
