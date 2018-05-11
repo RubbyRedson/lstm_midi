@@ -28,7 +28,6 @@ def read_file(file_path):
     :param file_path: location of file to read
     :return: numpy array of the file's words
     """
-    
     if "track_all.txt" not in file_path:
         content = np.array([])
         return content
@@ -37,13 +36,12 @@ def read_file(file_path):
     print("Parsing {}".format(file_path))
     with open(file_path) as f:
         lines = f.readlines()
-    content = [line.strip() for line in lines]
-    content = [content[i].split() for i in range(len(content))]
 
+    content = [line.strip() for line in lines]
+    content = [content[i].split(',') for i in range(len(content))]
 
     content = np.array(content)
     content = np.reshape(content, [-1, ])
-    # content = [''.join(sorted(it)) for it in content]
 
     return content
 
@@ -72,6 +70,7 @@ def read_data(data_path):
 
 # TODO I don't think we need this, as our dictionary is finite and known ahead of time
 def build_dataset(words):
+    '''
     import collections
     counts = collections.Counter(words).most_common()
     dictionary = dict()
@@ -79,10 +78,18 @@ def build_dataset(words):
         dictionary[word] = len(dictionary)
     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return dictionary, reverse_dictionary
+    '''
+    import collections
+    count = collections.Counter(words).most_common()
+    dictionary = dict()
+    for word, _ in count:
+        dictionary[word] = len(dictionary)
+    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    return dictionary, reverse_dictionary
 
 
 def get_lstm_cell(num_hidden):
-    return rnn.BasicLSTMCell(num_hidden)
+    return rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
 
 
 def create_rnn(x, weights, biases, num_inputs, num_hidden):
@@ -115,10 +122,11 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     # Parameters
     learning_rate = 0.0001
     training_iters = 50000
-    display_step = 10
-    n_input = 32
+    display_step = 1000
+    n_input = 4
     n_predictions = 128
-    n_hidden = 512
+    n_hidden = 256
+    hm_epochs = 200
 
     # Consume data files and build representation
     training_data = read_data(data_path)
@@ -126,7 +134,7 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     # Flatten into single array
 
     training_data = np.concatenate(training_data, axis=1).ravel()
-    training_data = [element for tupl in training_data for element in tupl]    
+    #training_data = [element for tupl in training_data for element in tupl]    
 
     dictionary, reverse_dictionary = build_dataset(training_data)
     vocab_size = len(dictionary)
@@ -163,42 +171,50 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
     with tf.Session() as session:
         session.run(init)
         step = 0
-        offset = random.randint(0, n_input + 1)
+        #offset = random.randint(0, n_input + 1)
+        offset = 0
         end_offset = n_input + 1
         acc_total = 0
         loss_total = 0
 
         writer.add_graph(session.graph)
 
-        while step < training_iters:
-            if offset > (len(training_data) - end_offset):
-                # If we've stepped past our input data, restart at random offset
-                offset = random.randint(0, n_input + 1)
+        #while step < training_iters:
 
-            symbols_in_keys = [[dictionary[str(training_data[i])]] for i in range(offset, offset + n_input)]
-            symbols_in_keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
+        for epoch in range(0, hm_epochs):
+            while offset < len(training_data) - end_offset:
+                if offset > (len(training_data) - end_offset):
+                    # If we've stepped past our input data, restart at random offset
+                    #offset = random.randint(0, n_input + 1)
+                    offset = 0
 
-            symbols_out_onehot = np.zeros([vocab_size], dtype=float)
-            symbols_out_onehot[dictionary[str(training_data[offset + n_input])]] = 1.0
-            symbols_out_onehot = np.reshape(symbols_out_onehot, [1, -1])
+                symbols_in_keys = [[dictionary[str(training_data[i])]] for i in range(offset, offset + n_input)]
+                symbols_in_keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
 
-            _, acc, loss, onehot_pred = session.run(
-                [train_op, accuracy, cost, pred],
-                feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
-            loss_total += loss
-            acc_total += acc
-            if (step + 1) % display_step == 0:
-                print("Iter= " + str(step + 1) + ", Average Loss= " +
-                      "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " +
-                      "{:.2f}%".format(100 * acc_total / display_step))
-                acc_total = 0
-                loss_total = 0
-                symbols_in = [training_data[i] for i in range(offset, offset + n_input)]
-                symbols_out = training_data[offset + n_input]
-                symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
-                print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
-            step += 1
-            offset += (n_input + 1)
+                symbols_out_onehot = np.zeros([vocab_size], dtype=float)
+                symbols_out_onehot[dictionary[str(training_data[offset + n_input])]] = 1.0
+                symbols_out_onehot = np.reshape(symbols_out_onehot, [1, -1])
+
+                _, acc, loss, onehot_pred = session.run(
+                    [train_op, accuracy, cost, pred],
+                    feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+                loss_total += loss
+                acc_total += acc
+                if (step + 1) % display_step == 0:
+                    print("Iter= " + str(step + 1) + ", Average Loss= " +
+                          "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " +
+                          "{:.2f}%".format(100 * acc_total / display_step) + " Progress=" +
+                          "{:.6f}% {}/{}".format(100 * (offset * (epoch +1) / (len(training_data) * hm_epochs)), epoch, hm_epochs))
+                    acc_total = 0
+                    loss_total = 0
+                    symbols_in = [training_data[i] for i in range(offset, offset + n_input)]
+                    symbols_out = training_data[offset + n_input]
+                    symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
+                    print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
+
+
+                step += 1
+                offset += (n_input + 1)
         print("Optimization Finished!")
         print("Elapsed time: ", elapsed(time.time() - start_time))
         save_path = saver.save(session, save_loc)
@@ -222,8 +238,17 @@ def run(data_path=DEFAULT_DATA_PATH, logdir=DEFAULT_LOGDIR, save_loc=DEFAULT_SAV
                     onehot_pred = session.run(pred, feed_dict={x: keys})
                     onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
                     sentence = "%s %s" % (sentence, reverse_dictionary[onehot_pred_index])
+
+                    '''
                     symbols_in_keys = symbols_in_keys[1:]
                     symbols_in_keys.append(onehot_pred_index)
+                    '''
+                    
+                    distributionSelector = tf.random_normal(onehot_pred.shape, mean=1, stddev=0.3)
+                    weightedSelect = int(tf.argmax(tf.multiply(onehot_pred, distributionSelector), 1).eval())
+                    symbols_in_keys = symbols_in_keys[1:]
+                    symbols_in_keys.append(weightedSelect)
+
                 print(sentence)
             except:
                 print("Word not in dictionary")
