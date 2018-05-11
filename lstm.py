@@ -14,6 +14,7 @@ n_predictions = 128
 # number of units in RNN cell
 n_hidden = 512
 minibatch_size = 12
+dropout = 0.95
 
 # Target log path
 SESSION_NAME = "{}-Layers_{}-mem_{}-units".format(4, learning_rate, n_input, n_hidden)
@@ -31,18 +32,29 @@ y = tf.placeholder("float", [None, vocab_size])
 
 # RNN output node weights and biases
 weights = {
+	'out': tf.Variable(tf.truncated_normal([n_hidden, vocab_size], stddev=0.1))
+}
+biases = {
+	'out': tf.Variable(tf.constant(0.1, shape=[vocab_size]))
+}
+
+'''
+weights = {
 	'out': tf.Variable(tf.random_normal([n_hidden, vocab_size]))
 }
 biases = {
 	'out': tf.Variable(tf.random_normal([vocab_size]))
 }
+'''
+
+pkeep = tf.placeholder(tf.float32, name="pkeep")
 
 def RNN(x, weights, biases):
 
 	def make_cell(n_hidden):
 		cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 		# TODO if is_training and keep_prob < 1:
-		cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=0.8)
+		cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=pkeep)
 		return cell
 
 	# reshape to [1, n_input]
@@ -106,13 +118,13 @@ with tf.Session() as session:
 			symbols_in_keys = minibatch
 			symbols_out_onehot = labels
 
-			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={x: symbols_in_keys, y: symbols_out_onehot, pkeep:dropout})
 			loss_total += loss
 			acc_total += acc
 			training_writer.add_summary(training_summary, step)
 
 			if (step+1) % display_step == 0:
-				onehot_pred = session.run(pred, feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+				onehot_pred = session.run(pred, feed_dict={x: symbols_in_keys, y: symbols_out_onehot, pkeep:1.0})
 
 				print("[{}-trainingset] Iter= ".format(str(datetime.now())) + str(step + 1) + ", Average Loss= " + \
 					  "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " + \
