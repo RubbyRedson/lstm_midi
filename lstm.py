@@ -15,8 +15,8 @@ n_predictions = 128
 n_hidden = 512
 
 # Target log path
-SESSION_NAME = "{}-LR_{}-mem_{}-units".format(learning_rate, n_input, n_hidden)
-logs_path = "/tmp/tensorflow/{}".format(SESSION_NAME)
+SESSION_NAME = "{}-Layers_{}-mem_{}-units".format(4, learning_rate, n_input, n_hidden)
+logs_path = "/logs/training/{}".format(SESSION_NAME)
 
 training_folder = './cello_text'
 save_loc = './resources/models/model.ckpt'
@@ -99,33 +99,40 @@ with tf.Session() as session:
 	training_writer = tf.summary.FileWriter('./logs/{}/training'.format(SESSION_NAME), session.graph)
 
 	while step < training_iters or training_iters < 0:
-		minibatch, labels, usedOffset = loader.getNextMinibatch()
+		try:
+			minibatch, labels, usedOffset = loader.getNextMinibatch()
 
-		symbols_in_keys = minibatch
-		symbols_out_onehot = labels
+			symbols_in_keys = minibatch
+			symbols_out_onehot = labels
 
-		_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
-		loss_total += loss
-		acc_total += acc
-		training_writer.add_summary(training_summary, step)
+			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+			loss_total += loss
+			acc_total += acc
+			training_writer.add_summary(training_summary, step)
 
-		if (step+1) % display_step == 0:
-			onehot_pred = session.run(pred, feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
+			if (step+1) % display_step == 0:
+				onehot_pred = session.run(pred, feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
 
-			print("[{}-trainingset] Iter= ".format(str(datetime.now())) + str(step + 1) + ", Average Loss= " + \
-				  "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " + \
-				  "{:.2f}%".format(100 * acc_total / display_step))
+				print("[{}-trainingset] Iter= ".format(str(datetime.now())) + str(step + 1) + ", Average Loss= " + \
+					  "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " + \
+					  "{:.2f}%".format(100 * acc_total / display_step))
 
+				session.run(iteration.assign(step))
+				saver.save(session, save_loc)
+				acc_total = 0
+				loss_total = 0
+
+				symbols_in = [loader.reverse_dictionary[i[0]] for i in symbols_in_keys[0]]
+				symbols_out = loader.reverse_dictionary[int(tf.argmax(symbols_out_onehot[0], 0).eval())]
+				symbols_out_pred = loader.reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval()[0])]
+
+				print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
+
+			step += 1
+		except KeyboardInterrupt:
+			print("Exiting and saving model")
 			session.run(iteration.assign(step))
-			saver.save(session, save_loc)
-			acc_total = 0
-			loss_total = 0
+			break
 
-			symbols_in = [loader.reverse_dictionary[i[0]] for i in symbols_in_keys[0]]
-			symbols_out = loader.reverse_dictionary[int(tf.argmax(symbols_out_onehot[0], 0).eval())]
-			symbols_out_pred = loader.reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval()[0])]
-
-			print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
-
-		step += 1
+		saver.save(session, save_loc)
 

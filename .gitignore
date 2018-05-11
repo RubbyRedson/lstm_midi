@@ -1,2 +1,5 @@
 __pycache__/
 resources/
+*.p
+.idea
+logs
