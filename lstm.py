@@ -13,6 +13,7 @@ n_input = 32
 n_predictions = 128
 # number of units in RNN cell
 n_hidden = 512
+minibatch_size = 12
 
 # Target log path
 SESSION_NAME = "{}-Layers_{}-mem_{}-units".format(4, learning_rate, n_input, n_hidden)
@@ -20,7 +21,7 @@ logs_path = "/logs/training/{}".format(SESSION_NAME)
 
 training_folder = './cello_text'
 save_loc = './resources/models/model.ckpt'
-loader = DataLoader(n_input, 12, training_folder, None)
+loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
 vocab_size = len(loader.dictionary)
 
