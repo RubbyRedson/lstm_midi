@@ -3,3 +3,4 @@ resources/
 *.p
 .idea
 logs
+.DS_Store

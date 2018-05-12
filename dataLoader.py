@@ -59,7 +59,7 @@ class DataLoader:
 
 		for i in range(self.batch_size):
 			#newMiniBatches.append(minibatchItem[i])
-			symbols_out_onehot[i][int(minibatchItem[i][-1][0])] = 1.0
+			symbols_out_onehot[i][minibatchItem[i][-1][0]] = 1.0
 
 			#minibatchItem[i] = minibatchItem[i][:-1]
 			res[i] = np.reshape(symbols_out_onehot[i], [1, -1])[0]
@@ -135,7 +135,8 @@ class DataLoader:
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
 
-		batches = np.empty([len(self.training_data), self.n_input + 1, 1])
+		batches = np.empty([len(self.training_data), self.n_input + 1, 1], dtype=np.uint32)
+
 		for i in range(len(self.training_data)):
 			if i % 50000 == 0:
 				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100, psutil.virtual_memory().percent))
@@ -144,7 +145,9 @@ class DataLoader:
 			for z in range(len(self.training_data[i])):
 				batchSession.append([self.dictionary[self.training_data[i][z]]])
 			batches[i] = batchSession
+		
 		self.batches = batches
+
 		np.random.shuffle(self.batches)
 
 		#we don't need this anymore, so allow it to be GB collected

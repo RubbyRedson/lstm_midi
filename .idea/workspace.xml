@@ -2,9 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ad525052-bf4d-4e01-898d-8f83b2917b30" name="Default" comment="">
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/.idea/lstm_midi.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/lstm_midi.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dataLoader.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataLoader.py" afterDir="false" />
+=======
+      <change afterPath="$PROJECT_DIR$/model.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/predict.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dictionapry.py" beforeDir="false" afterPath="$PROJECT_DIR$/dictionary.py" afterDir="false" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
       <change beforePath="$PROJECT_DIR$/lstm.py" beforeDir="false" afterPath="$PROJECT_DIR$/lstm.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -15,12 +23,21 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
+<<<<<<< HEAD
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="lstm.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lstm.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="179">
               <caret line="116" selection-start-line="116" selection-end-line="116" />
+=======
+    <leaf>
+      <file leaf-file-name="lstm.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/lstm.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="99">
+              <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -28,7 +45,62 @@
           </provider>
         </entry>
       </file>
+<<<<<<< HEAD
       <file leaf-file-name="dataLoader.py" pinned="false" current-in-tab="true">
+=======
+      <file leaf-file-name="predict.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/predict.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="333">
+              <caret line="50" column="97" selection-start-line="50" selection-start-column="97" selection-end-line="50" selection-end-column="97" />
+              <folding>
+                <element signature="e#0#13#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Bach_Cello_Suite_No1_BWV1007_Courante_track_all.txt" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/cello_text/Bach_Cello_Suite_No1_BWV1007_Courante_track_all.txt">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="150">
+              <caret column="1690" selection-start-column="1688" selection-end-column="1690" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dictionary.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/dictionary.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="180">
+              <caret line="12" column="7" selection-start-line="12" selection-start-column="6" selection-end-line="12" selection-end-column="7" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="model.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/model.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="83">
+              <caret line="10" column="62" selection-start-line="10" selection-start-column="22" selection-end-line="10" selection-end-column="62" />
+              <folding>
+                <element signature="e#0#23#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="python_message.py" pinned="false" current-in-tab="false">
+        <entry file="file:///Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/google/protobuf/internal/python_message.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="18">
+              <caret line="1013" selection-start-line="1013" selection-end-line="1013" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dataLoader.py" pinned="false" current-in-tab="false">
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
         <entry file="file://$PROJECT_DIR$/dataLoader.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="323">
@@ -42,14 +114,29 @@
       </file>
     </leaf>
   </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>loadPickle</find>
+      <find>pickleIt</find>
+      <find>pickleExists</find>
+      <find>n_predictions</find>
+    </findStrings>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
+<<<<<<< HEAD
         <option value="$PROJECT_DIR$/lstm.py" />
         <option value="$PROJECT_DIR$/dataLoader.py" />
+=======
+        <option value="$PROJECT_DIR$/dataLoader.py" />
+        <option value="$PROJECT_DIR$/model.py" />
+        <option value="$PROJECT_DIR$/lstm.py" />
+        <option value="$PROJECT_DIR$/predict.py" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
       </list>
     </option>
   </component>
@@ -70,6 +157,11 @@
             <path>
               <item name="lstm_midi" type="b2602c69:ProjectViewProjectNode" />
               <item name="lstm_midi" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="lstm_midi" type="b2602c69:ProjectViewProjectNode" />
+              <item name="lstm_midi" type="462c0819:PsiDirectoryNode" />
+              <item name="resources" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -94,7 +186,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.predict">
     <configuration name="lstm" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="lstm_midi" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -113,8 +205,31 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
+    <configuration name="predict" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="lstm_midi" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/predict.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.lstm" />
+      <item itemvalue="Python.predict" />
+    </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.predict" />
         <item itemvalue="Python.lstm" />
       </list>
     </recent_temporary>
@@ -163,10 +278,22 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/lstm.py</url>
+<<<<<<< HEAD
           <line>93</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+=======
+          <line>62</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/lstm.py</url>
+          <line>27</line>
+          <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
           <url>file://$PROJECT_DIR$/dataLoader.py</url>
           <line>45</line>
           <option name="timeStamp" value="14" />
@@ -176,7 +303,13 @@
           <line>128</line>
           <option name="timeStamp" value="17" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/predict.py</url>
+          <line>42</line>
+          <option name="timeStamp" value="16" />
+        </line-breakpoint>
       </breakpoints>
+<<<<<<< HEAD
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
@@ -185,6 +318,9 @@
         </breakpoint>
       </default-breakpoints>
       <option name="time" value="24" />
+=======
+      <option name="time" value="17" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
@@ -228,23 +364,63 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
     <entry file="file:///Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/google/protobuf/internal/python_message.py" />
     <entry file="file://$PROJECT_DIR$/lstm.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="179">
           <caret line="116" selection-start-line="116" selection-end-line="116" />
+=======
+    <entry file="file://$PROJECT_DIR$/dictionary.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="12" column="7" selection-start-line="12" selection-start-column="6" selection-end-line="12" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="83">
+          <caret line="10" column="62" selection-start-line="10" selection-start-column="22" selection-end-line="10" selection-end-column="62" />
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cello_text/Bach_Cello_Suite_No1_BWV1007_Courante_track_all.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret column="1690" selection-start-column="1688" selection-end-column="1690" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lstm.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="99">
+          <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/dataLoader.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="323">
           <caret line="60" column="52" selection-start-line="60" selection-start-column="38" selection-end-line="60" selection-end-column="52" />
           <folding>
             <element signature="e#0#14#0" expanded="true" />
+=======
+    <entry file="file://$PROJECT_DIR$/predict.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="333">
+          <caret line="50" column="97" selection-start-line="50" selection-start-column="97" selection-end-line="50" selection-end-column="97" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+>>>>>>> 5fa6bfbfd8b13023e831d0011b0749f740c60e6e
           </folding>
         </state>
       </provider>
