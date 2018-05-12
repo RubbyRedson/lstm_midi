@@ -12,15 +12,16 @@ display_step = 1000
 n_input = 32
 n_predictions = 128
 # number of units in RNN cell
-n_hidden = 512
-minibatch_size = 12
+n_hidden = 256
+minibatch_size = 32
 dropout = 0.95
 
 # Target log path
-SESSION_NAME = "{}-Layers_{}-mem_{}-units".format(4, learning_rate, n_input, n_hidden)
+SESSION_NAME = "miditext2_{}-Layers_{}-mem_{}-units".format(4, learning_rate, n_input, n_hidden)
 logs_path = "/logs/training/{}".format(SESSION_NAME)
 
-training_folder = './cello_text'
+training_folder = './midi_text'
+#training_folder = './cello_text'
 save_loc = './resources/models/model.ckpt'
 loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
@@ -104,7 +105,7 @@ with tf.name_scope("model"):
 # Launch the graph
 with tf.Session() as session:
 	session.run(init)
-
+	#saver.restore(session, save_loc)
 	step = iteration.eval()
 	acc_total = 0
 	loss_total = 0
@@ -113,12 +114,16 @@ with tf.Session() as session:
 
 	while step < training_iters or training_iters < 0:
 		try:
+			
 			minibatch, labels, usedOffset = loader.getNextMinibatch()
+
 
 			symbols_in_keys = minibatch
 			symbols_out_onehot = labels
 
+			print("Before")
 			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={x: symbols_in_keys, y: symbols_out_onehot, pkeep:dropout})
+			print("After")
 			loss_total += loss
 			acc_total += acc
 			training_writer.add_summary(training_summary, step)
@@ -147,5 +152,5 @@ with tf.Session() as session:
 			session.run(iteration.assign(step))
 			break
 
-		saver.save(session, save_loc)
+	saver.save(session, save_loc)
 

@@ -3,6 +3,7 @@ import pickle
 import random
 import numpy as np
 import glob
+import psutil
 
 class DataLoader:
 
@@ -36,7 +37,7 @@ class DataLoader:
 			self.training_folder += '/'
 
 	def isOutOfIndex(self):
-		return self.offset > (len(self.training_data) - self.batch_size)
+		return self.offset > (len(self.batches) - self.batch_size)
 
 	def testSetIsOutOfIndex(self):
 		return self.testOffset > (len(self.test_data) - self.batch_size)
@@ -50,17 +51,20 @@ class DataLoader:
 			self.epoch += 1
 			print("EPOCH => {}".format(self.epoch))
 
-		minibatchItem = self.batches[self.offset: self.offset + self.batch_size].tolist()
+		minibatchItem = self.batches[self.offset: self.offset + self.batch_size]
+		#newMiniBatches = []
 
 		res = np.empty([self.batch_size, self.vocab_size])
 		symbols_out_onehot = np.zeros([self.batch_size, self.vocab_size], dtype=float)
 
 		for i in range(self.batch_size):
-			symbols_out_onehot[i][minibatchItem[i][-1][0]] = 1.0
-			minibatchItem[i] = minibatchItem[i][:-1]
+			#newMiniBatches.append(minibatchItem[i])
+			symbols_out_onehot[i][int(minibatchItem[i][-1][0])] = 1.0
+
+			#minibatchItem[i] = minibatchItem[i][:-1]
 			res[i] = np.reshape(symbols_out_onehot[i], [1, -1])[0]
 
-		return minibatchItem, res, self.offset
+		return minibatchItem[:,:-1], res, self.offset
 
 	def getNextTestMiniBatch(self):
 		self.testOffset += self.batch_size
@@ -70,19 +74,20 @@ class DataLoader:
 			self.testEpoch += 1
 			print("TEST_EPOCH => {}".format(self.testEpoch))
 
-		minibatchItem = self.test_batches[self.testOffset: self.testOffset + self.batch_size].tolist()
+		minibatchItem = self.test_batches[self.testOffset: self.testOffset + self.batch_size]
+		newMiniBatches = []
 
 		res = np.empty([self.batch_size, self.vocab_size])
 		symbols_out_onehot = np.zeros([self.batch_size, self.vocab_size], dtype=float)
 
 		for i in range(self.batch_size):
-			a = minibatchItem[i][-1]
-			msg = self.reverse_dictionary[minibatchItem[i][-1][0]]
-			symbols_out_onehot[i][minibatchItem[i][-1][0]] = 1.0
-			minibatchItem[i] = minibatchItem[i][:-1]
+			newMiniBatches.append(minibatchItem[i].tolist())
+
+			symbols_out_onehot[i][newMiniBatches[i][-1][0]] = 1.0
+			newMiniBatches[i] = newMiniBatches[i][:-1]
 			res[i] = np.reshape(symbols_out_onehot[i], [1, -1])[0]
 
-		return minibatchItem, res, self.testOffset
+		return newMiniBatches, res, self.testOffset
 
 
 	def pickleIt(self, variable, name):
@@ -114,17 +119,36 @@ class DataLoader:
 		reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 		return dictionary, reverse_dictionary
 
+	'''
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
-		batches = []
-		for chunk in self.training_data:
-			batchSession = []
-			for item in chunk:
-				batchSession.append([self.dictionary[item]])
-			batches.append(batchSession)
-
-		self.batches = np.array(batches)
+		batches = np.empty([len(self.training_data), self.n_input + 1, 1])
+		for i in range(len(self.training_data)):
+			batchSession = np.empty([len(self.training_data[i]), 1])
+			for z in range(len(self.training_data[i])):
+				batchSession[z] = [self.dictionary[self.training_data[i][z]]]
+			batches[i] = batchSession
+		self.batches = batches
 		np.random.shuffle(self.batches)
+	'''
+
+	def cacheBatches(self):
+		print("Creating cached batches for the training set")
+
+		batches = np.empty([len(self.training_data), self.n_input + 1, 1])
+		for i in range(len(self.training_data)):
+			if i % 50000 == 0:
+				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100, psutil.virtual_memory().percent))
+
+			batchSession = []
+			for z in range(len(self.training_data[i])):
+				batchSession.append([self.dictionary[self.training_data[i][z]]])
+			batches[i] = batchSession
+		self.batches = batches
+		np.random.shuffle(self.batches)
+
+		#we don't need this anymore, so allow it to be GB collected
+		self.training_data = None
 
 	def read_data(self, fname):
 		with open(fname) as f:
