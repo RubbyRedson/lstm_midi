@@ -10,7 +10,7 @@ from model import Model
 learning_rate = 0.001
 training_iters = -1
 display_step = 1000
-n_input = 32
+n_input = 4
 # number of units in RNN cell
 n_hidden = 256
 minibatch_size = 32
@@ -22,8 +22,8 @@ SESSION_NAME = "{}-Layers_{}-LR_{}-mem_{}-units".format(n_layers, learning_rate,
 
 logs_path = "/logs/training/{}".format(SESSION_NAME)
 
-training_folder = './midi_text'
-#training_folder = './cello_text'
+#training_folder = './midi_text'
+training_folder = './cello_text'
 save_loc = './resources/models/model.ckpt'
 loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
@@ -71,14 +71,15 @@ with tf.Session() as session:
 
 	while step < training_iters or training_iters < 0:
 		try:
-			
+
 			print("Trining..")
-			minibatch, labels, usedOffset = loader.getNextMinibatch()
+			features, labels = loader.getNextMinibatch()
 
-			symbols_in_keys = minibatch
-			symbols_out_onehot = labels
+			model.x = features
+			model.y = labels
 
-			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={model.x: symbols_in_keys, model.y: symbols_out_onehot, model.pkeep:dropout})
+
+			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={model.pkeep:dropout})
 
 			loss_total += loss
 			acc_total += acc

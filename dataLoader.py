@@ -4,6 +4,7 @@ import random
 import numpy as np
 import glob
 import psutil
+import tensorflow as tf
 
 class DataLoader:
 
@@ -22,6 +23,7 @@ class DataLoader:
 	test_batches = None
 	epoch = None
 	testEpoch = None
+	training_count = None
 
 	def __init__(self, n_input, batch_size, training_folder, test_folder):
 		self.offset = 0
@@ -37,23 +39,33 @@ class DataLoader:
 			self.training_folder += '/'
 
 	def isOutOfIndex(self):
-		return self.offset > (len(self.batches) - self.batch_size)
+		return self.offset > self.training_count - self.batch_size
 
 	def testSetIsOutOfIndex(self):
-		return self.testOffset > (len(self.test_data) - self.batch_size)
+		return self.testOffset > self.training_count - self.batch_size
+
+	def increment(self):
+		if self.isOutOfIndex():
+			self.offset = 0
+			self.epoch += 1
+			print("EPOCH => {}".format(self.epoch))
+		else:
+			self.offset += self.batch_size
 
 	def getNextMinibatch(self):
 
-		self.offset += self.batch_size
 
 		if self.isOutOfIndex():
 			self.offset = 0
 			self.epoch += 1
 			print("EPOCH => {}".format(self.epoch))
 
-		minibatchItem = self.batches[self.offset: self.offset + self.batch_size]
+		features = self.batches[self.offset: self.offset + self.batch_size]
+		labels = self.labels[self.offset: self.offset + self.batch_size]
+
 		#newMiniBatches = []
 
+		'''
 		res = np.empty([self.batch_size, self.vocab_size])
 		symbols_out_onehot = np.zeros([self.batch_size, self.vocab_size], dtype=float)
 
@@ -63,8 +75,11 @@ class DataLoader:
 
 			#minibatchItem[i] = minibatchItem[i][:-1]
 			res[i] = np.reshape(symbols_out_onehot[i], [1, -1])[0]
+		'''
 
-		return minibatchItem[:,:-1], res, self.offset
+		self.offset += self.batch_size
+
+		return features, labels
 
 	def getNextTestMiniBatch(self):
 		self.testOffset += self.batch_size
@@ -135,23 +150,32 @@ class DataLoader:
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
 
-		batches = np.empty([len(self.training_data), self.n_input + 1, 1], dtype=np.uint32)
+		batches = np.empty([len(self.training_data), self.n_input, 1], dtype=np.uint32)
+		labels = np.zeros([len(self.training_data), len(self.dictionary)])
 
 		for i in range(len(self.training_data)):
 			if i % 50000 == 0:
 				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100, psutil.virtual_memory().percent))
 
 			batchSession = []
-			for z in range(len(self.training_data[i])):
+			for z in range(len(self.training_data[i]) - 1):
 				batchSession.append([self.dictionary[self.training_data[i][z]]])
 			batches[i] = batchSession
+
+			labels[i][self.dictionary[self.training_data[i][-1]]] = 1.0
 		
 		self.batches = batches
 
-		np.random.shuffle(self.batches)
+
+		#np.random.shuffle(self.batches)
+		self.batches = tf.constant(batches, tf.float32)
+		self.labels = tf.constant(labels, tf.float32)
 
 		#we don't need this anymore, so allow it to be GB collected
+		self.training_count = len(self.training_data)
 		self.training_data = None
+
+
 
 	def read_data(self, fname):
 		with open(fname) as f:
