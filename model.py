@@ -14,8 +14,8 @@ class Model:
 		self.vocab_size = vocab_size
 		self.n_layers = n_layers
 
-		self.x = tf.placeholder("float", [None, self.n_input, 1], name="model.x")
-		self.y = tf.placeholder("float", [None, self.vocab_size], name="model.y")
+		self.x = tf.placeholder(tf.float32, [None, self.n_input, 1], name="model.x")
+		self.y = tf.placeholder(tf.uint8, [None, self.vocab_size], name="model.y")
 
 		self.weights = {
 			'out': tf.Variable(tf.truncated_normal([self.n_hidden, self.vocab_size], stddev=0.1))
