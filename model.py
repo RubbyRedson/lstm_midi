@@ -8,7 +8,7 @@ class Model:
 	weights = None
 	biases = None
 
-	def __init__(self, n_hidden, n_input, n_layers, vocab_size):
+	def __init__(self, n_hidden, n_input, n_layers, vocab_size, minibatch_size):
 		self.n_hidden = n_hidden
 		self.n_input = n_input
 		self.vocab_size = vocab_size
@@ -26,14 +26,15 @@ class Model:
 		}
 
 		# Inverse of dropout
-		self.pkeep = tf.placeholder(tf.float32)
+		#self.pkeep = tf.placeholder(tf.float32)
 
 	def RNN(self):
 		def make_cell(n_hidden):
-			cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
+			cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(n_hidden)
+			#cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 			# cell = rnn.BasicLSTMCell(n_hidden)
 			# TODO if is_training and keep_prob < 1:
-			cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=self.pkeep)
+			cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=0.95)
 			return cell
 
 		# reshape to [1, n_input]
@@ -46,6 +47,7 @@ class Model:
 
 		# generate prediction
 		outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
+		
 
 		# there are n_input outputs but
 		# we only want the last output

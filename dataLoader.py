@@ -149,13 +149,14 @@ class DataLoader:
 		self.batches = batches
 		np.random.shuffle(self.batches)
 	'''
+	'''
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
 
 		batches = np.empty([len(self.training_data), self.n_input, 1], dtype=np.float32)
-		#labels = np.empty([len(self.training_data), len(self.dictionary)], dtype=np.int32)
+		#labels = np.zeros([len(self.training_data), len(self.dictionary)], dtype=np.int32)
 
-		labels = np.zeros([len(self.training_data), len(self.dictionary)], dtype=np.uint8)
+		labels = np.empty([len(self.training_data)], dtype=np.uint8)
 
 		for i in range(len(self.training_data)):
 			if i % 50000 == 0:
@@ -166,8 +167,8 @@ class DataLoader:
 				batchSession.append([self.dictionary[self.training_data[i][z]]])
 			batches[i] = batchSession
 
-			#labels[i] = self.dictionary[self.training_data[i][-1]]
-			labels[i][self.dictionary[self.training_data[i][-1]]] = 1.0
+			labels[i] = self.dictionary[self.training_data[i][-1]]
+			#labels[i][self.dictionary[self.training_data[i][-1]]] = 1.0
 		
 		self.batches = batches
 		self.labels = labels
@@ -180,36 +181,34 @@ class DataLoader:
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
 
-		#batches = np.empty([len(self.training_data), self.n_input, 1], dtype=np.int32)
-		#labels = np.empty([len(self.training_data), len(self.dictionary)], dtype=np.int32)
-
-		# labels = np.zeros([len(self.training_data), len(self.dictionary)], dtype=np.uint8)
-
 		# open the TFRecords file
 		val_filename = 'val.tfrecords'  # address to save the TFRecords file
 		writer = tf.python_io.TFRecordWriter(val_filename)
 
 		for i in range(len(self.training_data)):
-			if i % 1000 == 0:
+			if i % 5000 == 0:
 				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100,
 																		 psutil.virtual_memory().percent))
 
-			batchSession = np.empty([len(self.training_data[i]) - 1, 1], dtype=np.int32)
+			batchSession = np.empty([len(self.training_data[i]) - 1], dtype=np.int32)
 			
 			for z in range(len(self.training_data[i]) - 1):
-				batchSession[z] = [self.dictionary[self.training_data[i][z]]]
+				batchSession[z] = self.dictionary[self.training_data[i][z]]
 
 				#batchSession.append([self.dictionary[self.training_data[i][z]]])
 			#batches[i] = batchSession
 
 			# labels[i] = self.dictionary[self.training_data[i][-1]]
-			labels = np.zeros([len(self.dictionary)], dtype=np.uint8)
-			labels[self.dictionary[self.training_data[i][-1]]] = 1.0
+			#labels = np.zeros([len(self.dictionary)], dtype=np.uint8)
+			#labels[self.dictionary[self.training_data[i][-1]]] = 1.0
 
+			label = [self.dictionary[self.training_data[i][-1]]]
+
+			batchSession = batchSession.tolist()
 
 			feature = {
 				'train/feature': tf.train.Feature(float_list=tf.train.FloatList(value=batchSession)),
-				'train/label': tf.train.Feature(float_list=tf.train.FloatList(value=labels))
+				'train/label': tf.train.Feature(int64_list=tf.train.Int64List(value=label))
 			}
 
 			example = tf.train.Example(features=tf.train.Features(feature=feature))
@@ -224,7 +223,7 @@ class DataLoader:
 		# np.random.shuffle(self.batches)
 		# self.batches = tf.constant(batches, tf.float32)
 		# self.labels = tf.constant(labels, tf.uint8)
-		'''
+		
 	def createTFRecords(self):
 		print("Creating TF-records")
 
@@ -259,7 +258,9 @@ class DataLoader:
 
 		tmp = []
 		for i in range(len(content)):
-			pts = content[i].split(" ")
+			#pts = content[i].split(" ")
+			pts = list(content[i])
+			
 			if len(pts) == size_including_label:
 				tmp.append(pts)
 			elif len(pts) > size_including_label:
@@ -328,12 +329,14 @@ class DataLoader:
 
 		self.vocab_size = len(self.dictionary)
 
-		self.cacheBatches()
+		if not os.path.isfile("val.tfrecords"):
+			self.cacheBatches()
 		#self.createTFRecords()
 
 		#we don't need this anymore, so allow it to be GB collected
 		self.training_count = len(self.training_data)
 		self.training_data = None
+		
 
 
 

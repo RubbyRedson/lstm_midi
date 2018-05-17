@@ -6,16 +6,16 @@ from datetime import datetime
 from dataLoader import DataLoader
 from model import Model
 import numpy as np
-
+import time
 
 # Parameters
 learning_rate = 0.001
 training_iters = -1
 display_step = 1000
-n_input = 36
+n_input = 46
 # number of units in RNN cell
 n_hidden = 256
-minibatch_size = 32
+minibatch_size = 128
 dropout = 0.95
 n_layers = 4
 
@@ -29,25 +29,42 @@ save_loc = './resources/models/model.ckpt'
 loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
 vocab_size = len(loader.dictionary)
-
-model = Model(n_hidden, n_input, n_layers, vocab_size)
+model = Model(n_hidden, n_input, n_layers, vocab_size, minibatch_size)
 
 def parse_function(example_proto):
-	features = {'train/feature': tf.FixedLenFeature([n_input, 1], tf.float32),
-			   'train/label': tf.FixedLenFeature([vocab_size], tf.float32)}
+	features = {
+		'train/feature': tf.FixedLenFeature((n_input), tf.float32),
+		'train/label': tf.FixedLenFeature((), tf.int64)
+	}
 
 	parsed_features = tf.parse_single_example(example_proto, features)
-	return parsed_features["train/feature"], parsed_features["train/label"]
+
+	features = parsed_features["train/feature"]
+	features = tf.reshape(features, [1, n_input])
+
+	label = parsed_features["train/label"]
+	label = tf.reshape(label, [1, 1])
+
+	_y = tf.one_hot(label, vocab_size, axis=1)
+	_y = tf.reshape(_y, [vocab_size])
+
+	return features, _y
 
 
-dataset = tf.data.Dataset.from_tensor_slices((loader.batches, loader.labels))
+dataset = tf.data.TFRecordDataset("val.tfrecords")
+#, num_parallel_calls=10
+dataset = dataset.map(parse_function, num_parallel_calls=4)
+
+#dataset = tf.data.Dataset.from_tensor_slices((loader.batches, loader.labels))
 #dataset = dataset.map(parse_function)
-dataset = dataset.prefetch(1000).repeat().batch(minibatch_size)
+dataset = dataset.repeat().batch(minibatch_size).shuffle(buffer_size=100).prefetch(70)
 
+'''
 def toOneHot(features, labels):
 	_y = tf.one_hot(labels, vocab_size, axis=1)
 	_y = tf.reshape(_y, [-1, vocab_size])
 	return features, _y
+'''
 
 
 
@@ -100,33 +117,26 @@ with tf.Session() as session:
 
 	while step < training_iters or training_iters < 0:
 		try:
-
-			_, acc, loss, training_summary = session.run([optimizer, accuracy, cost, summary], feed_dict={model.pkeep: dropout})
-
-			loss_total += loss
-			acc_total += acc
-			training_writer.add_summary(training_summary, step)
-
 			if (step+1) % display_step == 0:
-				#onehot_pred = session.run(pred, feed_dict={model.pkeep: 1.0})
+				_, acc, loss, _, training_summary = session.run([optimizer, accuracy, cost, iteration.assign(step), summary])
+
+				loss_total += loss
+				acc_total += acc
 
 				print("[{}-trainingset] Iter= ".format(str(datetime.now())) + str(step + 1) + ", Average Loss= " + \
 					  "{:.6f}".format(loss_total / display_step) + ", Average Accuracy= " + \
 					  "{:.2f}%".format(100 * acc_total / display_step))
 
-				
-				session.run(iteration.assign(step))
+				training_writer.add_summary(training_summary, step)
 				saver.save(session, save_loc)
 				acc_total = 0
 				loss_total = 0
-				
-				'''
-				symbols_in = [loader.reverse_dictionary[i[0]] for i in symbols_in_keys[0]]
-				symbols_out = loader.reverse_dictionary[int(tf.argmax(symbols_out_onehot[0], 0).eval())]
-				symbols_out_pred = loader.reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval()[0])]
 
-				print("%s - [%s] vs [%s]" % (symbols_in, symbols_out, symbols_out_pred))
-				'''
+			else:
+				_, acc, loss = session.run([optimizer, accuracy, cost])
+
+				loss_total += loss
+				acc_total += acc
 
 			step += 1
 		except KeyboardInterrupt:
