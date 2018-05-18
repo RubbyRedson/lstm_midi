@@ -17,11 +17,11 @@ reverse_dictionary = loadPickle("reverse_dictionary.p")
 
 # Parameters
 n_input = 32
-n_predictions = 512
+n_predictions = 256
 n_layers = 4
 
 # number of units in RNN cell
-n_hidden = 512
+n_hidden = 256
 
 model = Model(n_hidden, n_input, n_layers, vocab_size)
 pred = model.RNN()
@@ -48,7 +48,7 @@ with tf.Session() as session:
 
 	for i in range(n_predictions):
 		keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
-		onehot_pred = tf.nn.softmax(session.run(pred, feed_dict={model.x: keys, model.pkeep: 0.95}))
+		onehot_pred = tf.nn.softmax(session.run(pred, feed_dict={model.x: keys}))
 		onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
 
 		symbols_in_keys = symbols_in_keys[1:]

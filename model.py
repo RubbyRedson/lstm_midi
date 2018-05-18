@@ -8,7 +8,7 @@ class Model:
 	weights = None
 	biases = None
 
-	def __init__(self, n_hidden, n_input, n_layers, vocab_size, minibatch_size):
+	def __init__(self, n_hidden, n_input, n_layers, vocab_size):
 		self.n_hidden = n_hidden
 		self.n_input = n_input
 		self.vocab_size = vocab_size

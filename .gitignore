@@ -4,3 +4,4 @@ resources/
 .idea
 logs
 .DS_Store
+val.tfrecords

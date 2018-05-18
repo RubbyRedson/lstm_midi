@@ -16,7 +16,7 @@ n_input = 46
 # number of units in RNN cell
 n_hidden = 256
 minibatch_size = 128
-dropout = 0.95
+dropout = 0.50
 n_layers = 4
 
 # Target log path
@@ -28,8 +28,10 @@ training_folder = './midi_text'
 save_loc = './resources/models/model.ckpt'
 loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
+
+
 vocab_size = len(loader.dictionary)
-model = Model(n_hidden, n_input, n_layers, vocab_size, minibatch_size)
+model = Model(n_hidden, n_input, n_layers, vocab_size)
 
 def parse_function(example_proto):
 	features = {
@@ -57,7 +59,7 @@ dataset = dataset.map(parse_function, num_parallel_calls=4)
 
 #dataset = tf.data.Dataset.from_tensor_slices((loader.batches, loader.labels))
 #dataset = dataset.map(parse_function)
-dataset = dataset.repeat().batch(minibatch_size).shuffle(buffer_size=100).prefetch(70)
+dataset = dataset.repeat().batch(minibatch_size).shuffle(buffer_size=10000).prefetch(10000)
 
 '''
 def toOneHot(features, labels):
@@ -108,7 +110,7 @@ with tf.name_scope("model"):
 # Launch the graph
 with tf.Session() as session:
 	session.run(init)
-	#saver.restore(session, save_loc)
+	saver.restore(session, save_loc)
 	step = iteration.eval()
 	acc_total = 0
 	loss_total = 0

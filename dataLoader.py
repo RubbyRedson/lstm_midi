@@ -38,6 +38,7 @@ class DataLoader:
 		self.testEpoch = 0
 		self.batch_size = batch_size
 		self.files = []
+		self.dictionary = {}
 		if(self.training_folder[-1] != '/'):
 			self.training_folder += '/'
 
@@ -118,21 +119,11 @@ class DataLoader:
 		return os.path.isfile(name)
 
 	def build_dataset(self, trainingset, testingset):
-		import collections
-		import itertools
-
-		flattenedTrainingset = list(itertools.chain.from_iterable(trainingset))
-
-		if testingset is not None:
-			flattenedTestingset = list(itertools.chain.from_iterable(testingset))
-			flattened = flattenedTrainingset + flattenedTestingset
-		else:
-			flattened = flattenedTrainingset
-
-		count = collections.Counter(flattened).most_common()
-		dictionary = dict()
-		for word, _ in count:
-			dictionary[word] = len(dictionary)
+		dictionary = {}
+		counter = 0
+		for k in self.dictionary:
+			dictionary[k] = counter
+			counter += 1
 
 		reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 		return dictionary, reverse_dictionary
@@ -177,6 +168,7 @@ class DataLoader:
 		#self.batches = tf.constant(batches, tf.float32)
 		#self.labels = tf.constant(labels, tf.uint8)
 
+	'''
 	'''
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
@@ -223,9 +215,59 @@ class DataLoader:
 		# np.random.shuffle(self.batches)
 		# self.batches = tf.constant(batches, tf.float32)
 		# self.labels = tf.constant(labels, tf.uint8)
-		
+	'''
+	
+	def cacheBatches(self):
+		print("Creating cached batches for the training set")
+
+		# open the TFRecords file
+		val_filename = 'val.tfrecords'  # address to save the TFRecords file
+		writer = tf.python_io.TFRecordWriter(val_filename)
+		fileCounter = 0
+		for filename in glob.iglob(self.training_folder  + '**/*.txt', recursive=True):
+			if self.filter(filename):
+				training_data_row = self.read_data(filename)
+
+				for training_data in training_data_row:
+					batchSession = []
+					
+					for z in range(len(training_data) - 1):
+						batchSession.append(self.dictionary[training_data[z]])
+
+					label = [self.dictionary[training_data[-1]]]
+
+					feature = {
+						'train/feature': tf.train.Feature(float_list=tf.train.FloatList(value=batchSession)),
+						'train/label': tf.train.Feature(int64_list=tf.train.Int64List(value=label))
+					}
+
+					example = tf.train.Example(features=tf.train.Features(feature=feature))
+					writer.write(example.SerializeToString())
+
+				fileCounter += 1
+				print("[{}/{} {:.2f}%] => {}".format(fileCounter, len(self.files), (fileCounter / len(self.files)) * 100, filename))
+		writer.close()
+		sys.stdout.flush()
+
+		#self.batches = batches
+		#self.labels = labels
+
+		# np.random.shuffle(self.batches)
+		# self.batches = tf.constant(batches, tf.float32)
+		# self.labels = tf.constant(labels, tf.uint8)
+
 	def createTFRecords(self):
 		print("Creating TF-records")
+
+		for filename in glob.iglob(self.training_folder, recursive=True):
+			if self.filter(filename):
+
+				data = self.read_data(filename)
+				for item in data:
+					dictionary[item] = 1
+
+		return dictionary
+
 
 		for i in range(len(self.batches)):
 
@@ -260,7 +302,7 @@ class DataLoader:
 		for i in range(len(content)):
 			#pts = content[i].split(" ")
 			pts = list(content[i])
-			
+
 			if len(pts) == size_including_label:
 				tmp.append(pts)
 			elif len(pts) > size_including_label:
@@ -274,23 +316,26 @@ class DataLoader:
 		return filename.endswith("_all.txt")
 
 	def read_folder(self, path):
-		content = []
+
 		for filename in glob.iglob(path, recursive=True):
 			if self.filter(filename):
-
 				self.files.append(filename)
 
 				data = self.read_data(filename)
-				if len(data) > 0:
-					content += data
+				for row in data:
+					for item in row:
+						self.dictionary[item] = 1
+				print("[{}] => {}".format(len(self.dictionary), filename))
 
-		return content
+		return self.dictionary
 
 	def loadData(self, usePickle=True):
 
+		'''
 		# The dicts needs to be rebuilt if any of the data sets changed
-		needToRebuildDict = False
+		
 
+		
 		# Load training data from cahce if exists
 		if usePickle and self.pickleExists("training_data.p"):
 			self.training_data = self.loadPickle("training_data.p")
@@ -301,6 +346,7 @@ class DataLoader:
 			if usePickle:
 				self.pickleIt(self.training_data, "training_data.p")
 				print("Loaded training data and pickled it...")
+		
 
 		# Load test data from cache if exists
 		if usePickle and self.pickleExists("test_data.p"):
@@ -314,13 +360,20 @@ class DataLoader:
 				if usePickle:
 					self.pickleIt(self.test_data, "test_data.p")
 					print("Loaded training data and pickled it...")
+		'''
+		needToRebuildDict = False
 
 		# Load the dictionaries from cache if exists and any of the data sets did not change
 		if(usePickle and self.pickleExists("dictionary.p") and self.pickleExists("reverse_dictionary.p")) and not needToRebuildDict:
 			self.dictionary = self.loadPickle("dictionary.p")
 			self.reverse_dictionary = self.loadPickle("reverse_dictionary.p")
 		else:
+			#Do a one pass and build the dictionary
+			self.read_folder(self.training_folder + '**/*.txt')
+			if self.test_folder is not None:
+				self.read_folder(self.test_folder + '**/*.txt')
 			dictionary, reverse_dictionary = self.build_dataset(self.training_data, self.test_data)
+
 			if usePickle:
 				self.pickleIt(dictionary, "dictionary.p")
 				self.pickleIt(reverse_dictionary, "reverse_dictionary.p")
@@ -331,11 +384,12 @@ class DataLoader:
 
 		if not os.path.isfile("val.tfrecords"):
 			self.cacheBatches()
+
 		#self.createTFRecords()
 
 		#we don't need this anymore, so allow it to be GB collected
-		self.training_count = len(self.training_data)
-		self.training_data = None
+		#self.training_count = len(self.training_data)
+		#self.training_data = None
 		
 
 
