@@ -58,7 +58,6 @@ class DataLoader:
 
 	def getNextMinibatch(self):
 
-
 		if self.isOutOfIndex():
 			self.offset = 0
 			self.epoch += 1
@@ -66,20 +65,6 @@ class DataLoader:
 
 		features = self.batches[self.offset: self.offset + self.batch_size]
 		labels = self.labels[self.offset: self.offset + self.batch_size]
-
-		#newMiniBatches = []
-
-		'''
-		res = np.empty([self.batch_size, self.vocab_size])
-		symbols_out_onehot = np.zeros([self.batch_size, self.vocab_size], dtype=float)
-
-		for i in range(self.batch_size):
-			#newMiniBatches.append(minibatchItem[i])
-			symbols_out_onehot[i][minibatchItem[i][-1][0]] = 1.0
-
-			#minibatchItem[i] = minibatchItem[i][:-1]
-			res[i] = np.reshape(symbols_out_onehot[i], [1, -1])[0]
-		'''
 
 		self.offset += self.batch_size
 
@@ -128,95 +113,6 @@ class DataLoader:
 		reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 		return dictionary, reverse_dictionary
 
-	'''
-	def cacheBatches(self):
-		print("Creating cached batches for the training set")
-		batches = np.empty([len(self.training_data), self.n_input + 1, 1])
-		for i in range(len(self.training_data)):
-			batchSession = np.empty([len(self.training_data[i]), 1])
-			for z in range(len(self.training_data[i])):
-				batchSession[z] = [self.dictionary[self.training_data[i][z]]]
-			batches[i] = batchSession
-		self.batches = batches
-		np.random.shuffle(self.batches)
-	'''
-	'''
-	def cacheBatches(self):
-		print("Creating cached batches for the training set")
-
-		batches = np.empty([len(self.training_data), self.n_input, 1], dtype=np.float32)
-		#labels = np.zeros([len(self.training_data), len(self.dictionary)], dtype=np.int32)
-
-		labels = np.empty([len(self.training_data)], dtype=np.uint8)
-
-		for i in range(len(self.training_data)):
-			if i % 50000 == 0:
-				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100, psutil.virtual_memory().percent))
-
-			batchSession = []
-			for z in range(len(self.training_data[i]) - 1):
-				batchSession.append([self.dictionary[self.training_data[i][z]]])
-			batches[i] = batchSession
-
-			labels[i] = self.dictionary[self.training_data[i][-1]]
-			#labels[i][self.dictionary[self.training_data[i][-1]]] = 1.0
-		
-		self.batches = batches
-		self.labels = labels
-
-		#np.random.shuffle(self.batches)
-		#self.batches = tf.constant(batches, tf.float32)
-		#self.labels = tf.constant(labels, tf.uint8)
-
-	'''
-	'''
-	def cacheBatches(self):
-		print("Creating cached batches for the training set")
-
-		# open the TFRecords file
-		val_filename = 'val.tfrecords'  # address to save the TFRecords file
-		writer = tf.python_io.TFRecordWriter(val_filename)
-
-		for i in range(len(self.training_data)):
-			if i % 5000 == 0:
-				print("Caching data {:.2f}% MemoryUsage: {:.2f}%".format((i / len(self.training_data)) * 100,
-																		 psutil.virtual_memory().percent))
-
-			batchSession = np.empty([len(self.training_data[i]) - 1], dtype=np.int32)
-			
-			for z in range(len(self.training_data[i]) - 1):
-				batchSession[z] = self.dictionary[self.training_data[i][z]]
-
-				#batchSession.append([self.dictionary[self.training_data[i][z]]])
-			#batches[i] = batchSession
-
-			# labels[i] = self.dictionary[self.training_data[i][-1]]
-			#labels = np.zeros([len(self.dictionary)], dtype=np.uint8)
-			#labels[self.dictionary[self.training_data[i][-1]]] = 1.0
-
-			label = [self.dictionary[self.training_data[i][-1]]]
-
-			batchSession = batchSession.tolist()
-
-			feature = {
-				'train/feature': tf.train.Feature(float_list=tf.train.FloatList(value=batchSession)),
-				'train/label': tf.train.Feature(int64_list=tf.train.Int64List(value=label))
-			}
-
-			example = tf.train.Example(features=tf.train.Features(feature=feature))
-			writer.write(example.SerializeToString())
-
-		writer.close()
-		sys.stdout.flush()
-
-		#self.batches = batches
-		#self.labels = labels
-
-		# np.random.shuffle(self.batches)
-		# self.batches = tf.constant(batches, tf.float32)
-		# self.labels = tf.constant(labels, tf.uint8)
-	'''
-	
 	def cacheBatches(self):
 		print("Creating cached batches for the training set")
 
@@ -225,12 +121,13 @@ class DataLoader:
 		writer = tf.python_io.TFRecordWriter(val_filename)
 		fileCounter = 0
 		for filename in glob.iglob(self.training_folder  + '**/*.txt', recursive=True):
+
 			if self.filter(filename):
 				training_data_row = self.read_data(filename)
-
+				
 				for training_data in training_data_row:
 					batchSession = []
-					
+
 					for z in range(len(training_data) - 1):
 						batchSession.append(self.dictionary[training_data[z]])
 
@@ -249,71 +146,31 @@ class DataLoader:
 		writer.close()
 		sys.stdout.flush()
 
-		#self.batches = batches
-		#self.labels = labels
-
-		# np.random.shuffle(self.batches)
-		# self.batches = tf.constant(batches, tf.float32)
-		# self.labels = tf.constant(labels, tf.uint8)
-
-	def createTFRecords(self):
-		print("Creating TF-records")
-
-		for filename in glob.iglob(self.training_folder, recursive=True):
-			if self.filter(filename):
-
-				data = self.read_data(filename)
-				for item in data:
-					dictionary[item] = 1
-
-		return dictionary
-
-
-		for i in range(len(self.batches)):
-
-			if i % 10000 == 0:
-				print("{:.2f}%".format((i / len(self.batches) * 100)))
-
-			# open the TFRecords file
-			val_filename = 'val.tfrecords'  # address to save the TFRecords file
-			writer = tf.python_io.TFRecordWriter(val_filename)
-
-			feature = {
-				'train/feature': tf.train.Feature(float_list=tf.train.FloatList(value=self.batches[i])),
-				'train/label': tf.train.Feature(float_list=tf.train.FloatList(value=self.labels[i]))
-			}
-
-			example = tf.train.Example(features=tf.train.Features(feature=feature))
-			writer.write(example.SerializeToString())
-			
-		writer.close()
-		sys.stdout.flush()
-
-
 	def read_data(self, fname):
 		with open(fname) as f:
 			lines = f.readlines()
 
-		content = [line.strip() for line in lines]
-
 		size_including_label = self.n_input +1
 
-		tmp = []
-		for i in range(len(content)):
-			#pts = content[i].split(" ")
-			pts = list(content[i])
+		batched = []
+		batch = []
+		for i in range(len(lines)):
+			for j in range(len(lines[i])):
+				batch.append(lines[i][j])
+				if len(batch) == size_including_label:
+					batched.append(batch)
+					batch = []
 
-			if len(pts) == size_including_label:
-				tmp.append(pts)
-			elif len(pts) > size_including_label:
-				for j in range(len(pts) - size_including_label):
-					tmp.append(pts[j:j+size_including_label])
-		content = tmp
+		#If not match up, pad with whitespace
+		if len(batch) > 0:
+			for i in range(size_including_label - len(batch)):
+				batch.append(" ")
+				batched.append(batch)
 
-		return content
+		return batched
 
 	def filter(self, filename):
-		return filename.endswith("_all.txt")
+		return True
 
 	def read_folder(self, path):
 
@@ -330,37 +187,6 @@ class DataLoader:
 		return self.dictionary
 
 	def loadData(self, usePickle=True):
-
-		'''
-		# The dicts needs to be rebuilt if any of the data sets changed
-		
-
-		
-		# Load training data from cahce if exists
-		if usePickle and self.pickleExists("training_data.p"):
-			self.training_data = self.loadPickle("training_data.p")
-			print("Loaded training data from pickle...")
-		else:
-			needToRebuildDict = True
-			self.training_data = self.read_folder(self.training_folder + '**/*.txt')
-			if usePickle:
-				self.pickleIt(self.training_data, "training_data.p")
-				print("Loaded training data and pickled it...")
-		
-
-		# Load test data from cache if exists
-		if usePickle and self.pickleExists("test_data.p"):
-			self.test_data = self.loadPickle("test_data.p")
-			print("Loaded test data from pickle...")
-		else:
-			needToRebuildDict = True
-			if self.test_data is not None:
-				self.test_data = self.read_folder(self.test_folder + '**/*.txt')
-
-				if usePickle:
-					self.pickleIt(self.test_data, "test_data.p")
-					print("Loaded training data and pickled it...")
-		'''
 		needToRebuildDict = False
 
 		# Load the dictionaries from cache if exists and any of the data sets did not change
@@ -384,14 +210,3 @@ class DataLoader:
 
 		if not os.path.isfile("val.tfrecords"):
 			self.cacheBatches()
-
-		#self.createTFRecords()
-
-		#we don't need this anymore, so allow it to be GB collected
-		#self.training_count = len(self.training_data)
-		#self.training_data = None
-		
-
-
-
-

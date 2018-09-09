@@ -12,10 +12,10 @@ import time
 learning_rate = 0.001
 training_iters = -1
 display_step = 1000
-n_input = 46
+n_input = 256
 # number of units in RNN cell
-n_hidden = 256
-minibatch_size = 128
+n_hidden = 512
+minibatch_size = 64
 dropout = 0.50
 n_layers = 4
 
@@ -23,12 +23,11 @@ n_layers = 4
 SESSION_NAME = "{}-Layers_{}-LR_{}-mem_{}-units".format(n_layers, learning_rate, n_input, n_hidden)
 logs_path = "/logs/training/{}".format(SESSION_NAME)
 
-training_folder = './midi_text'
-#training_folder = './cello_text'
+training_folder = '/home/randomhash/Desktop/projects/midi_conversion/textfiles/'
 save_loc = './resources/models/model.ckpt'
+
 loader = DataLoader(n_input, minibatch_size, training_folder, None)
 loader.loadData(True)
-
 
 vocab_size = len(loader.dictionary)
 model = Model(n_hidden, n_input, n_layers, vocab_size)
@@ -54,30 +53,13 @@ def parse_function(example_proto):
 
 
 dataset = tf.data.TFRecordDataset("val.tfrecords")
-#, num_parallel_calls=10
 dataset = dataset.map(parse_function, num_parallel_calls=4)
-
-#dataset = tf.data.Dataset.from_tensor_slices((loader.batches, loader.labels))
-#dataset = dataset.map(parse_function)
-dataset = dataset.repeat().batch(minibatch_size).shuffle(buffer_size=10000).prefetch(10000)
-
-'''
-def toOneHot(features, labels):
-	_y = tf.one_hot(labels, vocab_size, axis=1)
-	_y = tf.reshape(_y, [-1, vocab_size])
-	return features, _y
-'''
-
-
-
-#dataset = tf.data.Dataset.from_tensor_slices(loader.training_data)
-#dataset = dataset.map(toOneHot).prefetch(1000).repeat().batch(minibatch_size)
+dataset = dataset.repeat().batch(minibatch_size).shuffle(buffer_size=10000).prefetch(1000)
 
 iter = dataset.make_one_shot_iterator()
 x, y = iter.get_next()
 model.x = x
 model.y = y
-
 
 pred = model.RNN()
 
@@ -110,7 +92,7 @@ with tf.name_scope("model"):
 # Launch the graph
 with tf.Session() as session:
 	session.run(init)
-	saver.restore(session, save_loc)
+	#saver.restore(session, save_loc)
 	step = iteration.eval()
 	acc_total = 0
 	loss_total = 0

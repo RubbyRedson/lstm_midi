@@ -34,7 +34,7 @@ class Model:
 			#cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
 			# cell = rnn.BasicLSTMCell(n_hidden)
 			# TODO if is_training and keep_prob < 1:
-			cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=0.95)
+			cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=0.50)
 			return cell
 
 		# reshape to [1, n_input]
@@ -43,7 +43,8 @@ class Model:
 		# Generate a n_input-element sequence of inputs
 		x = tf.split(x, self.n_input, 1)
 
-		rnn_cell = rnn.MultiRNNCell([make_cell(self.n_hidden) for _ in range(self.n_layers)])
+		#rnn_cell = rnn.MultiRNNCell([make_cell(self.n_hidden) for _ in range(self.n_layers)])
+		rnn_cell = rnn.MultiRNNCell([make_cell(512), make_cell(400), make_cell(256), make_cell(512)])
 
 		# generate prediction
 		outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)

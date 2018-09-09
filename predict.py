@@ -17,11 +17,11 @@ reverse_dictionary = loadPickle("reverse_dictionary.p")
 
 # Parameters
 n_input = 32
-n_predictions = 256
+n_predictions = 512
 n_layers = 4
 
 # number of units in RNN cell
-n_hidden = 256
+n_hidden = 512
 
 model = Model(n_hidden, n_input, n_layers, vocab_size)
 pred = model.RNN()
@@ -35,14 +35,20 @@ with tf.Session() as session:
 	print("Loaded session")
 
 	# Plug in any initial words here
-	words = []
+	words = "format=1 tracks=8 division=480\n"
+	print(dictionary['f'])
+	'''
+	
+	
 	for i in range(n_input):
-		randomIndex = randint(0, len(dictionary))
+		randomIndex = randint(0, len(dictionary) -1)
 		words.append(reverse_dictionary[randomIndex])
-
+	
 	prediction = ""
 	for word in words:
 		prediction += word + " "
+	'''
+	prediction = "format=1 tracks=8 division=480\n"
 
 	symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
 
